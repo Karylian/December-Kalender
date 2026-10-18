@@ -80,5 +80,108 @@
       "winning_tickets": 1,
       "top": true
     }
+  ],
+  "total_prizes": 297747,
+  "total_prize_value": 7604000,
+  "tiers": [
+    {
+      "count": 108000,
+      "value": 10
+    },
+    {
+      "count": 40000,
+      "value": 20
+    },
+    {
+      "count": 45000,
+      "value": 20
+    },
+    {
+      "count": 20000,
+      "value": 30
+    },
+    {
+      "count": 21000,
+      "value": 30
+    },
+    {
+      "count": 21000,
+      "value": 30
+    },
+    {
+      "count": 5000,
+      "value": 40
+    },
+    {
+      "count": 9000,
+      "value": 40
+    },
+    {
+      "count": 9000,
+      "value": 40
+    },
+    {
+      "count": 5000,
+      "value": 40
+    },
+    {
+      "count": 4000,
+      "value": 50
+    },
+    {
+      "count": 5000,
+      "value": 50
+    },
+    {
+      "count": 5000,
+      "value": 50
+    },
+    {
+      "count": 100,
+      "value": 100
+    },
+    {
+      "count": 100,
+      "value": 100
+    },
+    {
+      "count": 100,
+      "value": 100
+    },
+    {
+      "count": 120,
+      "value": 100
+    },
+    {
+      "count": 120,
+      "value": 100
+    },
+    {
+      "count": 100,
+      "value": 100
+    },
+    {
+      "count": 100,
+      "value": 100
+    },
+    {
+      "count": 2,
+      "value": 5000
+    },
+    {
+      "count": 2,
+      "value": 10000
+    },
+    {
+      "count": 2,
+      "value": 20000
+    },
+    {
+      "count": 1,
+      "value": 1000000,
+      "symbols": [
+        "ster"
+      ]
+    }
   ]
 }

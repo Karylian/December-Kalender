@@ -105,5 +105,180 @@
       "winning_tickets": 2,
       "top": true
     }
+  ],
+  "total_prizes": 1550575,
+  "total_prize_value": 8521500,
+  "tiers": [
+    {
+      "count": 396000,
+      "value": 5,
+      "symbols": [
+        "kerstman"
+      ],
+      "free_ticket": true
+    },
+    {
+      "count": 395000,
+      "value": 5,
+      "symbols": [
+        "muts"
+      ]
+    },
+    {
+      "count": 380000,
+      "value": 5
+    },
+    {
+      "count": 124000,
+      "value": 10,
+      "symbols": [
+        "sneeuwpop"
+      ]
+    },
+    {
+      "count": 112000,
+      "value": 10,
+      "symbols": [
+        "muts"
+      ]
+    },
+    {
+      "count": 70000,
+      "value": 10
+    },
+    {
+      "count": 12000,
+      "value": 15,
+      "symbols": [
+        "muts"
+      ]
+    },
+    {
+      "count": 12000,
+      "value": 15,
+      "symbols": [
+        "muts",
+        "sneeuwpop"
+      ]
+    },
+    {
+      "count": 11000,
+      "value": 15
+    },
+    {
+      "count": 12000,
+      "value": 20,
+      "symbols": [
+        "slee"
+      ]
+    },
+    {
+      "count": 11000,
+      "value": 20,
+      "symbols": [
+        "muts",
+        "sneeuwpop"
+      ]
+    },
+    {
+      "count": 11000,
+      "value": 20
+    },
+    {
+      "count": 1750,
+      "value": 30,
+      "symbols": [
+        "sneeuwpop",
+        "slee"
+      ]
+    },
+    {
+      "count": 2000,
+      "value": 30,
+      "symbols": [
+        "muts",
+        "sneeuwpop"
+      ]
+    },
+    {
+      "count": 220,
+      "value": 50,
+      "symbols": [
+        "kaars"
+      ]
+    },
+    {
+      "count": 220,
+      "value": 50,
+      "symbols": [
+        "muts",
+        "sneeuwpop",
+        "slee"
+      ]
+    },
+    {
+      "count": 220,
+      "value": 50
+    },
+    {
+      "count": 40,
+      "value": 100,
+      "symbols": [
+        "schaats"
+      ]
+    },
+    {
+      "count": 40,
+      "value": 100,
+      "symbols": [
+        "sneeuwpop",
+        "slee",
+        "kaars"
+      ]
+    },
+    {
+      "count": 40,
+      "value": 100
+    },
+    {
+      "count": 20,
+      "value": 200,
+      "symbols": [
+        "want"
+      ]
+    },
+    {
+      "count": 20,
+      "value": 200,
+      "symbols": [
+        "muts",
+        "sneeuwpop",
+        "slee",
+        "kaars",
+        "schaats"
+      ]
+    },
+    {
+      "count": 1,
+      "value": 1000
+    },
+    {
+      "count": 1,
+      "value": 5000,
+      "symbols": [
+        "bel"
+      ]
+    },
+    {
+      "count": 1,
+      "value": 10000
+    },
+    {
+      "count": 2,
+      "value": 100000,
+      "symbols": [
+        "ster"
+      ]
+    }
   ]
 }

@@ -1,39 +1,53 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="stats">
-  <div class="stat"><span class="stat-label">Uitgegeven</span><span class="stat-value">{{ totals.spent | euro }}</span><span class="stat-sub">{{ items | length }} kalender(s)</span></div>
-  <div class="stat"><span class="stat-label">Gewonnen</span><span class="stat-value">{{ totals.won | euro }}</span><span class="stat-sub">tot nu toe gekrast</span></div>
-  {% set net = totals.won - totals.spent %}
-  <div class="stat {{ 'good' if net >= 0 else 'bad' }}"><span class="stat-label">Netto</span><span class="stat-value">{{ net | euro }}</span><span class="stat-sub">winst min aankoop</span></div>
+  <div class="stat"><span class="stat-label">Uitgegeven</span><span class="stat-value">{{ totals.spent_cents | euro }}</span><span class="stat-sub">{{ totals.calendars }} kalender(s), {{ totals.done }} afgerond</span></div>
+  <div class="stat"><span class="stat-label">Gewonnen</span><span class="stat-value">{{ totals.won_cents | euro }}</span><span class="stat-sub">{{ totals.winners }} met een prijs · {{ totals.paid_out }} uitbetaald</span></div>
+  {% set net = totals.net_cents %}
+  <div class="stat {{ 'good' if net >= 0 else 'bad' }}"><span class="stat-label">Netto</span><span class="stat-value">{{ net | euro }}</span><span class="stat-sub">winst min aankoop · <a href="/statistieken">meer statistieken</a></span></div>
 </section>
 
 <section class="card">
-  <h2>Kalenders</h2>
-  {% if items %}
+  <div class="row spread">
+    <h2>Kalenders</h2>
+    <form method="get" class="row filter-form">
+      <input type="search" name="q" value="{{ q }}" placeholder="Zoek op serienummer of naam" aria-label="Zoeken">
+      <select name="status" aria-label="Status" onchange="this.form.submit()">
+        <option value="">Alle</option>
+        <option value="active"{{ " selected" if status == "active" }}>Bezig</option>
+        <option value="done"{{ " selected" if status == "done" }}>Afgerond</option>
+      </select>
+      <button class="btn small">Zoek</button>
+    </form>
+  </div>
+  {% if tickets or orphans %}
   <div class="table-wrap">
   <table>
     <thead><tr><th>Kalender</th><th>Type</th><th>Gekrast</th><th>Winst</th><th>Netto</th><th></th></tr></thead>
     <tbody>
-    {% for i in items %}
+    {% for t in tickets %}
+      {% set n = t.win_cents - t.ruleset.price_cents %}
       <tr>
-        <td><a href="/kalenders/{{ i.calendar.id }}">{{ i.calendar.label }}</a>
-          {% if i.calendar.serial %}<div class="muted small">#{{ i.calendar.serial }}</div>{% endif %}
-          <div class="muted small">door {{ i.calendar.created_by_name or "onbekend" }}</div></td>
-        {% if i.ruleset %}
-        <td>{{ i.ruleset.name }}</td>
-        <td>{{ i.summary.opened }} / {{ i.ruleset.boxes }}</td>
-        <td>{{ i.summary.total_win_cents | euro }}</td>
-        {% set n = i.summary.total_win_cents - i.ruleset.price_cents %}
+        <td><a href="/kalenders/{{ t.calendar.id }}">{{ t.calendar.label }}</a>
+          {% if t.calendar.serial %}<div class="muted small">#{{ t.calendar.serial }}</div>{% endif %}
+          <div class="muted small">door {{ t.calendar.created_by_name or "onbekend" }}</div></td>
+        <td>{{ t.ruleset.name }} ({{ t.ruleset.edition }})</td>
+        <td>{% if t.done and not t.full_record %}<span class="muted">alleen totaal</span>{% else %}{{ t.summary.opened }} / {{ t.ruleset.boxes }}{% endif %}</td>
+        <td>{{ t.win_cents | euro }}</td>
         <td class="{{ 'good' if n >= 0 else 'bad' }}">{{ n | euro }}</td>
-        {% else %}
-        <td colspan="4" class="bad">Spelregels '{{ i.calendar.ruleset_code }}' ontbreken</td>
-        {% endif %}
-        <td>{% if i.calendar.paid_out %}<span class="badge good">uitbetaald</span>{% endif %}</td>
+        <td>{% if t.done %}<span class="badge">afgerond</span>{% endif %}
+            {% if t.calendar.paid_out %}<span class="badge good">uitbetaald</span>{% endif %}</td>
       </tr>
+    {% endfor %}
+    {% for o in orphans %}
+      <tr><td><a href="/kalenders/{{ o.id }}">{{ o.label }}</a></td>
+        <td colspan="5" class="bad">Spelregels '{{ o.ruleset_code }}' ontbreken</td></tr>
     {% endfor %}
     </tbody>
   </table>
   </div>
+  {% elif q or status %}
+  <p class="muted">Geen kalenders gevonden voor dit filter.</p>
   {% else %}
   <p class="muted">Nog geen kalenders. Voeg hieronder je eerste kalender toe.</p>
   {% endif %}

@@ -12,6 +12,15 @@ Webapp voor het bijhouden van de December Kalender-krasloten (€5, €10 en €
 
 > Er is bewust geen login: iedereen kiest zijn naam en ziet en bewerkt alle kalenders. Draai de app daarom **alleen op je thuisnetwerk** en zet hem niet open op internet.
 
+## Functies
+
+- **Kalender bijhouden:** symbool per vakje, feestdagspellen en extra spellen, met logboek en automatisch opslaan.
+- **Serienummer:** typ het nummer van het lot in; je krijgt een waarschuwing bij een dubbel nummer (zelfde type), en je kunt zoeken op serienummer of naam.
+- **Afronden:** sluit een kalender af met alleen het totaal dat je hebt gewonnen. Dat bedrag telt mee in de geldstatistieken; de symbolen en spellen worden vergrendeld tot je hem heropent.
+- **Statistieken** (`/statistieken`): geld per kalender, per editie en totaal; per symbool het aantal vakjes en het aantal loten dat de prijs haalde.
+- **Kans uit eigen record naast de gepubliceerde kans:** beide worden naast elkaar getoond, niet gemengd. Het eigen record telt alleen kalenders met alle vakjes ingevuld, en toont de steekproefgrootte en een 95%-interval.
+- **Verwacht rendement** (op de pagina Spelregels): uit de officiële prijsregels, zoals het uitbetaalde deel van de inleg en de kans op minstens één prijs.
+
 ## Starten
 
 Met Docker:

@@ -1,11 +1,11 @@
 {% set top = ruleset.top_symbol %}
 {% set top_row = summary.rows | selectattr("symbol", "equalto", top) | first if top else none %}
-{% set net = summary.total_win_cents - ruleset.price_cents %}
+{% set net = win_cents - ruleset.price_cents %}
 <section id="stats" class="stats"{% if oob %} hx-swap-oob="true"{% endif %}>
   <div class="stat">
     <span class="stat-label">Totale winst</span>
-    <span class="stat-value">{{ summary.total_win_cents | euro }}</span>
-    <span class="stat-sub">symbolen {{ summary.symbol_win_cents | euro }} · feestdagen {{ summary.holiday_win_cents | euro }}{% if ruleset.extra_games %} · extra {{ summary.extra_win_cents | euro }}{% endif %}</span>
+    <span class="stat-value">{{ win_cents | euro }}</span>
+    <span class="stat-sub">{% if calendar.status == "done" %}afgerond · ingevuld totaal{% else %}symbolen {{ summary.symbol_win_cents | euro }} · feestdagen {{ summary.holiday_win_cents | euro }}{% if ruleset.extra_games %} · extra {{ summary.extra_win_cents | euro }}{% endif %}{% endif %}</span>
   </div>
   <div class="stat {{ 'good' if net >= 0 else 'bad' }}">
     <span class="stat-label">Netto resultaat</span>
@@ -20,7 +20,7 @@
   </div>
   <div class="stat">
     <span class="stat-label">Kans op hoofdprijs <span class="badge warn" title="Schatting op basis van een aangenomen symbolenpool, zie Spelregels">schatting</span></span>
-    <span class="stat-value">{{ top_row.chance | chance if top_row else "—" }}</span>
+    <span class="stat-value">{{ top_row.chance | chance if top_row and not (calendar.status == "done" and summary.remaining) else "—" }}</span>
     <span class="stat-sub">{% if top %}{{ top.emoji }} {{ top.needed }}× {{ top.name }} · {{ top.prize_cents | euro }}{% endif %}</span>
   </div>
 </section>

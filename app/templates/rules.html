@@ -35,6 +35,30 @@
     </tbody>
   </table>
   </div>
+  {% if r.has_tiers %}
+  <h3>Verwacht rendement (officieel)</h3>
+  <p>
+    Gemiddeld wordt <strong>{{ r.cash_return | pct }}</strong> van de inleg uitbetaald{% if r.free_ticket_share %}, plus een gratis lot bij {{ r.free_ticket_share | pct }} van de loten (op papier € {{ "%.2f" | format(r.free_ticket_share * r.price_cents / 100) | replace(".", ",") }} extra per lot){% endif %}.
+    Kans op minstens één prijs: {{ r.win_chance | one_in }} ({{ "{:,}".format(r.total_prizes).replace(",", ".") }} prijzen in {{ "{:,}".format(r.print_run).replace(",", ".") }} loten).
+  </p>
+  <details>
+    <summary>Alle {{ r.tiers | length }} prijsregels uit het prijzenschema</summary>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Prijs</th><th>Aantal loten</th><th>Kans per lot</th><th>Symbolen</th></tr></thead>
+      <tbody>
+      {% for t in r.tiers %}
+        <tr>
+          <td>{{ "gratis lot" if t.free_ticket else (t.value_cents | euro) }}</td>
+          <td>{{ "{:,}".format(t.count).replace(",", ".") }}</td>
+          <td>{{ (t.count / r.print_run) | one_in }}</td>
+          <td>{% for key in t.symbols %}{{ r.symbol(key).emoji }} {{ r.symbol(key).needed }}× {{ r.symbol(key).name }}{{ " + " if not loop.last }}{% else %}<span class="muted">via spellen</span>{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="muted small">Een prijsregel kan een combinatie zijn (bijvoorbeeld symbolen plus een spelprijs); het bedrag is het totaal van de combinatie.</p>
+  </details>
+  {% endif %}
   {% if r.sources %}
   <p class="muted small">Bronnen:
     {% for src in r.sources %}<a href="{{ src.url }}" rel="noreferrer">{{ src.title }}</a>{{ ", " if not loop.last }}{% endfor %}
