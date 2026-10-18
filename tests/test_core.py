@@ -91,3 +91,76 @@ def test_twenty_euro_calendar_only_pays_for_stars():
     assert r.extra_games == 15
     summary = scoring.summarize(r, {d: "boom" for d in range(1, 12)}, {}, {})
     assert summary.symbol_win_cents == 0 and summary.opened == 11
+
+
+# --- statistieken en rendement -------------------------------------------------
+
+import copy
+import json
+
+from app import stats
+from app.rules import parse_ruleset
+
+
+def test_wilson_interval_brackets_the_estimate():
+    lo, hi = stats.wilson_interval(3, 10)
+    assert lo < 0.3 < hi
+    assert stats.wilson_interval(0, 10)[0] == 0.0
+    assert stats.wilson_interval(10, 10)[1] == 1.0
+    assert stats.wilson_interval(0, 0) is None
+    # Meer waarnemingen -> smaller interval
+    narrow = stats.wilson_interval(300, 1000)
+    assert narrow[1] - narrow[0] < hi - lo
+
+
+def test_effective_win_uses_done_total_only_when_done():
+    assert scoring.effective_win_cents("active", 700, 300) == 300
+    assert scoring.effective_win_cents("done", 700, 300) == 700
+    assert scoring.effective_win_cents("done", None, 300) == 300
+
+
+def test_official_tiers_are_consistent_with_published_totals():
+    for r in load_rulesets().values():
+        assert r.has_tiers and r.total_prizes == sum(t.count for t in r.tiers)
+        # totaal aantal prijzen / oplage is de gepubliceerde winkans (1 op ~2)
+        assert r.win_chance == pytest.approx(1 / r.overall_odds, rel=0.01)
+        assert 0.5 < r.cash_return < 0.7
+
+
+def test_tier_validation_rejects_mismatching_totals():
+    data = json.loads((TEST_RULES / "test-5.json").read_text())
+    data.update(print_run=100, tiers=[{"count": 2, "value": 5}, {"count": 1, "value": 10}],
+                total_prizes=3, total_prize_value=20)
+    assert parse_ruleset(copy.deepcopy(data)).cash_return == pytest.approx(20 / (100 * 5))
+    for field, value in (("total_prizes", 4), ("total_prize_value", 21)):
+        bad = copy.deepcopy(data) | {field: value}
+        with pytest.raises(ValueError):
+            parse_ruleset(bad)
+    bad = copy.deepcopy(data)
+    bad["tiers"][0]["symbols"] = ["bestaat-niet"]
+    with pytest.raises(ValueError):
+        parse_ruleset(bad)
+
+
+def _ticket(ruleset, boxes, status="active", done_total=None, label="t"):
+    cal = {"id": 1, "ruleset_code": ruleset.code, "status": status, "done_total_cents": done_total,
+           "paid_out": 0, "label": label}
+    return stats.Ticket(cal, ruleset, scoring.summarize(ruleset, boxes, {}, {}), boxes)
+
+
+def test_symbol_stats_only_use_tickets_with_every_box_logged():
+    rs = load_rulesets(TEST_RULES)["test-5"]
+    three_apples = {d: ("a" if d <= 3 else "x") for d in range(1, 32)}
+    no_apples = {d: "x" for d in range(1, 32)}
+    partial = {1: "a", 2: "a", 3: "a"}
+    only_total = _ticket(rs, {}, status="done", done_total=2500)
+    tickets = [_ticket(rs, three_apples), _ticket(rs, no_apples), _ticket(rs, partial), only_total]
+    g = stats.ruleset_stats(rs, tickets)
+    assert g.full_record_tickets == 2 and g.total_boxes == 62
+    apple = next(s for s in g.symbols if s.symbol.key == "a")
+    assert (apple.boxes, apple.reached, apple.recorded) == (3, 1, 0.5)
+    assert apple.published == pytest.approx(1 / 10, rel=0.05)
+    assert apple.interval[0] < 0.5 < apple.interval[1]
+    # Geld telt wél mee voor het afgeronde lot zonder symbolen
+    assert g.totals.won_cents == 500 + 500 + 2500 and g.totals.calendars == 4  # twee keer drie appels
+    assert g.settled_tickets == 1 and g.settled_return == pytest.approx(2500 / 500)

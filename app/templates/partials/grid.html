@@ -3,7 +3,7 @@
   {% set sym = ruleset.symbol(boxes.get(day)) %}
   <button class="day{{ ' filled' if sym }}{{ ' future' if day in future_days }}{{ ' holiday' if day in ruleset.holiday_days }}"
           hx-get="/kalenders/{{ calendar.id }}/dag/{{ day }}" hx-target="#modal"
-          aria-label="Dag {{ day }}{{ ': ' ~ sym.name if sym }}">
+          aria-label="Dag {{ day }}{{ ': ' ~ sym.name if sym }}"{{ " disabled" if calendar.status == "done" }}>
     <span class="day-num">{{ day }}{% if day in ruleset.holiday_days %} 🎁{% endif %}</span>
     {% if sym %}<span class="day-emoji">{{ sym.emoji }}</span><span class="day-name">{{ sym.name }}</span>
     {% else %}<span class="day-empty">?</span>{% endif %}

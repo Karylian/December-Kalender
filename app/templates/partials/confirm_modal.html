@@ -7,6 +7,20 @@
       <button class="btn" data-close-modal>Annuleren</button>
       <button class="btn danger" hx-post="/kalenders/{{ calendar.id }}/reset" hx-swap="none">Ja, reset lot</button>
     </div>
+    {% elif action == "finish" %}
+    <h2 id="modal-title">Kalender afronden</h2>
+    <p>Vul in hoeveel je in totaal hebt gewonnen met <strong>{{ calendar.label }}</strong>. Je hoeft de symbolen niet in te vullen: het bedrag telt mee in de geldstatistieken, maar niet in de symboolstatistieken. Je kunt de kalender later heropenen.</p>
+    {% if error %}<p class="banner bad">{{ error }}</p>{% endif %}
+    <form class="finish-form" hx-post="/kalenders/{{ calendar.id }}/afronden" hx-target="#modal">
+      <label>Totaal gewonnen (€)
+        <input name="total" inputmode="decimal" placeholder="0" autofocus
+               value="{{ total if total is defined else (win_cents | euro_input if win_cents else '') }}">
+      </label>
+      <div class="row spread">
+        <button type="button" class="btn" data-close-modal>Annuleren</button>
+        <button class="btn primary">Afronden</button>
+      </div>
+    </form>
     {% else %}
     <h2 id="modal-title">Kalender verwijderen?</h2>
     <p><strong>{{ calendar.label }}</strong> en het logboek worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.</p>

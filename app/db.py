@@ -57,6 +57,15 @@ MIGRATIONS = [
     );
     CREATE INDEX activity_log_calendar ON activity_log (calendar_id, id);
     """,
+    # 2: afronden zonder symbolen (alleen het resultaat) en zoeken op serienummer
+    """
+    ALTER TABLE calendars ADD COLUMN status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'done'));
+    ALTER TABLE calendars ADD COLUMN done_total_cents INTEGER;
+    ALTER TABLE calendars ADD COLUMN done_at TEXT;
+    ALTER TABLE calendars ADD COLUMN done_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+    CREATE INDEX calendars_serial ON calendars (ruleset_code, serial);
+    """,
 ]
 
 
