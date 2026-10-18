@@ -12,12 +12,13 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, rules, scoring, store
+from . import db, rules, scoring, stats, store
 from .money import format_euros, parse_euros
 
 APP_DIR = Path(__file__).resolve().parent
 USER_COOKIE = "dk_user"
 LOG_LIMIT = 100
+CLOSED_MESSAGE = "Deze kalender is afgerond. Heropen hem om te wijzigen."
 
 
 class NameRequired(Exception):
@@ -36,6 +37,18 @@ def format_chance(p: float | None) -> str:
     return "1 op " + f"{round(1 / p):,}".replace(",", ".")
 
 
+def format_pct(p: float | None, digits: int = 1) -> str:
+    return "—" if p is None else f"{p * 100:.{digits}f}%".replace(".", ",")
+
+
+def format_one_in(p: float | None) -> str:
+    """Kans als '1 op X' (of '—' bij onbekend/0)."""
+    if not p:
+        return "—"
+    x = 1 / p
+    return "1 op " + (f"{x:,.0f}".replace(",", ".") if x >= 100 else f"{x:.2f}".replace(".", ","))
+
+
 def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules.RULES_DIR) -> FastAPI:
     app = FastAPI(title="December Kalender Tracker")
     conn = db.connect(db_path)
@@ -46,6 +59,8 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
     templates.env.filters["euro"] = format_euros
     templates.env.filters["euro_input"] = lambda c: format_euros(c, input_value=True)
     templates.env.filters["chance"] = format_chance
+    templates.env.filters["pct"] = format_pct
+    templates.env.filters["one_in"] = format_one_in
     app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 
     app.state.conn = conn
@@ -89,12 +104,18 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
     def calendar_context(request: Request, calendar_id: int, user, **extra) -> dict:
         calendar, ruleset = load_calendar(calendar_id)
         today = date.today()
+        summary = summarize(calendar, ruleset)
+        serial = calendar["serial"]
         return {
             "request": request,
             "user": user,
             "calendar": calendar,
             "ruleset": ruleset,
-            "summary": summarize(calendar, ruleset),
+            "summary": summary,
+            "win_cents": scoring.effective_win_cents(
+                calendar["status"], calendar["done_total_cents"], summary.total_win_cents
+            ),
+            "serial_duplicates": store.serial_duplicates(conn, ruleset.code, serial, calendar_id) if serial else [],
             "boxes": store.get_boxes(conn, calendar_id),
             "log": store.get_log(conn, calendar_id, LOG_LIMIT),
             "future_days": {
@@ -137,21 +158,38 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
     # --- overzicht --------------------------------------------------------
 
     @app.get("/", response_class=HTMLResponse)
-    def overview(request: Request, user=Depends(current_user)):
-        items = []
-        for calendar in store.list_calendars(conn):
-            ruleset = rulesets.get(calendar["ruleset_code"])
-            summary = summarize(calendar, ruleset) if ruleset else None
-            items.append({"calendar": calendar, "ruleset": ruleset, "summary": summary})
-        known = [i for i in items if i["summary"]]
-        totals = {
-            "spent": sum(i["ruleset"].price_cents for i in known),
-            "won": sum(i["summary"].total_win_cents for i in known),
-        }
+    def overview(request: Request, q: str = "", status: str = "", user=Depends(current_user)):
+        status = status if status in ("active", "done") else ""
+        rows = store.list_calendars(conn, status=status or None, q=q.strip() or None)
+        tickets = stats.build_tickets(rows, rulesets, store.get_all_boxes(conn), store.get_all_amounts(conn))
+        orphans = [r for r in rows if r["ruleset_code"] not in rulesets]
         return templates.TemplateResponse(
             request,
             "index.html",
-            {"user": user, "items": items, "totals": totals, "rulesets": rulesets.values()},
+            {
+                "user": user,
+                "tickets": tickets,
+                "orphans": orphans,
+                "totals": stats.totals(tickets),
+                "rulesets": rulesets.values(),
+                "q": q,
+                "status": status,
+            },
+        )
+
+    @app.get("/statistieken", response_class=HTMLResponse)
+    def statistics(request: Request, user=Depends(current_user)):
+        tickets = stats.build_tickets(
+            store.list_calendars(conn), rulesets, store.get_all_boxes(conn), store.get_all_amounts(conn)
+        )
+        return templates.TemplateResponse(
+            request,
+            "statistics.html",
+            {
+                "user": user,
+                "totals": stats.totals(tickets),
+                "groups": stats.all_ruleset_stats(rulesets, tickets),
+            },
         )
 
     @app.post("/kalenders")
@@ -195,9 +233,11 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
     def set_day(
         request: Request, calendar_id: int, day: int, symbol: str = Form(""), user=Depends(current_user)
     ):
-        _, ruleset = load_calendar(calendar_id)
+        calendar, ruleset = load_calendar(calendar_id)
         if not 1 <= day <= ruleset.boxes:
             raise HTTPException(404)
+        if calendar["status"] == "done":
+            return updates(request, calendar_id, user, error=CLOSED_MESSAGE)
         new = ruleset.symbol(symbol) if symbol else None
         if symbol and new is None:
             raise HTTPException(400, "Onbekend symbool")
@@ -213,13 +253,15 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
         return updates(request, calendar_id, user)
 
     async def _save_game(request: Request, calendar_id: int, kind: str, game: int, user):
-        _, ruleset = load_calendar(calendar_id)
+        calendar, ruleset = load_calendar(calendar_id)
         if kind == "holiday":
             valid, slots, title = game in ruleset.holiday_days, ruleset.holiday_amounts, f"Feestdagspel {game} dec"
         else:
             valid, slots, title = 1 <= game <= ruleset.extra_games, ruleset.extra_amounts, f"Extra spel {game}"
         if not valid:
             raise HTTPException(404)
+        if calendar["status"] == "done":
+            return updates(request, calendar_id, user, error=CLOSED_MESSAGE)
         form = await request.form()
         try:
             amounts = [parse_euros(form.get(f"a{slot}")) for slot in range(slots)]
@@ -251,8 +293,48 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
 
     @app.post("/kalenders/{calendar_id}/reset", response_class=HTMLResponse)
     def reset(request: Request, calendar_id: int, user=Depends(current_user)):
-        load_calendar(calendar_id)
+        calendar, _ = load_calendar(calendar_id)
+        if calendar["status"] == "done":
+            return updates(request, calendar_id, user, error=CLOSED_MESSAGE)
         store.reset_calendar(conn, calendar_id, user["id"])
+        return updates(request, calendar_id, user)
+
+    @app.get("/kalenders/{calendar_id}/afronden", response_class=HTMLResponse)
+    def finish_modal(request: Request, calendar_id: int, user=Depends(current_user)):
+        ctx = calendar_context(request, calendar_id, user, action="finish")
+        return templates.TemplateResponse(request, "partials/confirm_modal.html", ctx)
+
+    @app.post("/kalenders/{calendar_id}/afronden", response_class=HTMLResponse)
+    def finish(
+        request: Request, calendar_id: int, total: str = Form(""), user=Depends(current_user)
+    ):
+        calendar, _ = load_calendar(calendar_id)
+        try:
+            cents = parse_euros(total)
+        except ValueError as exc:
+            ctx = calendar_context(request, calendar_id, user, action="finish", error=str(exc), total=total)
+            return templates.TemplateResponse(request, "partials/confirm_modal.html", ctx)
+        if cents is None:
+            cents = 0  # leeg totaal = niets gewonnen
+        if calendar["status"] != "done":
+            store.finish_calendar(conn, calendar_id, cents, user["id"], format_euros(cents))
+        return Response(status_code=204, headers={"HX-Redirect": f"/kalenders/{calendar_id}"})
+
+    @app.post("/kalenders/{calendar_id}/heropenen", response_class=HTMLResponse)
+    def reopen(calendar_id: int, user=Depends(current_user)):
+        calendar, _ = load_calendar(calendar_id)
+        if calendar["status"] == "done":
+            store.reopen_calendar(conn, calendar_id, user["id"])
+        return Response(status_code=204, headers={"HX-Redirect": f"/kalenders/{calendar_id}"})
+
+    @app.post("/kalenders/{calendar_id}/serienummer", response_class=HTMLResponse)
+    def update_serial(
+        request: Request, calendar_id: int, serial: str = Form(""), user=Depends(current_user)
+    ):
+        calendar, _ = load_calendar(calendar_id)
+        serial = serial.strip()[:40]
+        if serial != (calendar["serial"] or ""):
+            store.set_serial(conn, calendar_id, serial, user["id"])
         return updates(request, calendar_id, user)
 
     @app.post("/kalenders/{calendar_id}/log/wissen", response_class=HTMLResponse)

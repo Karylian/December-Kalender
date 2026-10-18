@@ -1,0 +1,7 @@
+<div id="serial-warning"{% if oob %} hx-swap-oob="true"{% endif %}>
+  {% if serial_duplicates %}
+  <div class="banner">Dit serienummer staat al bij:
+    {% for d in serial_duplicates %}<a href="/kalenders/{{ d.id }}">{{ d.label }}</a>{{ ", " if not loop.last }}{% endfor %}.
+    Controleer of je niet twee keer hetzelfde lot invoert.</div>
+  {% endif %}
+</div>

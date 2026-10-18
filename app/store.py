@@ -24,11 +24,23 @@ def get_or_create_user(conn: sqlite3.Connection, name: str) -> sqlite3.Row:
 
 # --- kalenders --------------------------------------------------------------
 
-def list_calendars(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+def list_calendars(
+    conn: sqlite3.Connection, *, status: str | None = None, q: str | None = None
+) -> list[sqlite3.Row]:
+    where, params = [], []
+    if status:
+        where.append("c.status = ?")
+        params.append(status)
+    if q:
+        like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        where.append("(c.serial LIKE ? ESCAPE '\\' OR c.label LIKE ? ESCAPE '\\')")
+        params += [like, like]
     return conn.execute(
-        """SELECT c.*, u.name AS created_by_name
-           FROM calendars c LEFT JOIN users u ON u.id = c.created_by
-           ORDER BY c.created_at DESC, c.id DESC"""
+        f"""SELECT c.*, u.name AS created_by_name
+            FROM calendars c LEFT JOIN users u ON u.id = c.created_by
+            {"WHERE " + " AND ".join(where) if where else ""}
+            ORDER BY c.created_at DESC, c.id DESC""",
+        params,
     ).fetchall()
 
 
@@ -77,6 +89,43 @@ def set_paid_out(conn: sqlite3.Connection, calendar_id: int, paid: bool, user_id
         conn.execute("UPDATE calendars SET paid_out = ? WHERE id = ?", (int(paid), calendar_id))
         _touch(conn, calendar_id)
         _log(conn, calendar_id, user_id, "Gemarkeerd als uitbetaald" if paid else "Uitbetaald-markering verwijderd")
+
+
+def finish_calendar(conn: sqlite3.Connection, calendar_id: int, total_cents: int, user_id: int, shown: str) -> None:
+    with conn:
+        conn.execute(
+            """UPDATE calendars SET status = 'done', done_total_cents = ?, done_at = datetime('now'), done_by = ?
+               WHERE id = ?""",
+            (total_cents, user_id, calendar_id),
+        )
+        _touch(conn, calendar_id)
+        _log(conn, calendar_id, user_id, f"Afgerond, totaal gewonnen {shown}")
+
+
+def reopen_calendar(conn: sqlite3.Connection, calendar_id: int, user_id: int) -> None:
+    with conn:
+        conn.execute(
+            "UPDATE calendars SET status = 'active', done_total_cents = NULL, done_at = NULL, done_by = NULL WHERE id = ?",
+            (calendar_id,),
+        )
+        _touch(conn, calendar_id)
+        _log(conn, calendar_id, user_id, "Heropend")
+
+
+def set_serial(conn: sqlite3.Connection, calendar_id: int, serial: str | None, user_id: int) -> None:
+    with conn:
+        conn.execute("UPDATE calendars SET serial = ? WHERE id = ?", (serial or None, calendar_id))
+        _touch(conn, calendar_id)
+        _log(conn, calendar_id, user_id, f"Serienummer: {serial}" if serial else "Serienummer verwijderd")
+
+
+def serial_duplicates(
+    conn: sqlite3.Connection, ruleset_code: str, serial: str, exclude_id: int | None = None
+) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT id, label FROM calendars WHERE ruleset_code = ? AND serial = ? COLLATE NOCASE AND id != ?",
+        (ruleset_code, serial, exclude_id or 0),
+    ).fetchall()
 
 
 def reset_calendar(conn: sqlite3.Connection, calendar_id: int, user_id: int) -> None:
@@ -152,6 +201,20 @@ def set_game_amounts(
         )
         _touch(conn, calendar_id)
         _log(conn, calendar_id, user_id, message)
+
+
+def get_all_boxes(conn: sqlite3.Connection) -> dict[int, dict[int, str]]:
+    result: dict[int, dict[int, str]] = defaultdict(dict)
+    for r in conn.execute("SELECT calendar_id, day, symbol_key FROM boxes"):
+        result[r["calendar_id"]][r["day"]] = r["symbol_key"]
+    return dict(result)
+
+
+def get_all_amounts(conn: sqlite3.Connection) -> dict[tuple[int, str], dict[int, dict[int, int]]]:
+    result: dict[tuple[int, str], dict[int, dict[int, int]]] = defaultdict(lambda: defaultdict(dict))
+    for r in conn.execute("SELECT calendar_id, kind, game, slot, amount_cents FROM game_amounts"):
+        result[(r["calendar_id"], r["kind"])][r["game"]][r["slot"]] = r["amount_cents"]
+    return {k: dict(v) for k, v in result.items()}
 
 
 # --- logboek ----------------------------------------------------------------

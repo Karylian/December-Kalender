@@ -77,3 +77,59 @@ def test_overview_and_export(named):
     assert "Testkalender" in named.get("/regels").text
     data = named.get("/export.json").json()
     assert data["boxes"][0]["symbol_key"] == "a"
+
+
+def test_finish_locks_the_calendar_and_counts_money_only(named):
+    cid = new_calendar(named)
+    named.post(f"/kalenders/{cid}/dag/1", data={"symbol": "a"})
+    assert "Kalender afronden" in named.get(f"/kalenders/{cid}/afronden").text
+
+    bad = named.post(f"/kalenders/{cid}/afronden", data={"total": "veel"})
+    assert "Ongeldig bedrag" in bad.text
+
+    done = named.post(f"/kalenders/{cid}/afronden", data={"total": "12,50"})
+    assert done.status_code == 204 and done.headers["HX-Redirect"] == f"/kalenders/{cid}"
+    page = named.get(f"/kalenders/{cid}").text
+    assert "Afgerond" in page and "€ 12,50" in page and "Heropenen" in page
+
+    # alleen-lezen: vakjes, spellen en reset worden geweigerd
+    assert "afgerond" in named.post(f"/kalenders/{cid}/dag/2", data={"symbol": "a"}).text
+    assert "afgerond" in named.post(f"/kalenders/{cid}/feestdag/5", data={"a0": "5"}).text
+    assert "afgerond" in named.post(f"/kalenders/{cid}/reset").text
+    assert named.get("/export.json").json()["boxes"] == [
+        b for b in named.get("/export.json").json()["boxes"] if b["day"] == 1
+    ]
+
+    overview = named.get("/").text
+    assert "€ 12,50" in overview and "alleen totaal" in overview  # afgerond, niet alle vakjes ingevuld
+    assert "afgerond" in named.get("/", params={"status": "done"}).text
+    assert "Mijn lot" not in named.get("/", params={"status": "active"}).text
+
+    named.post(f"/kalenders/{cid}/heropenen")
+    assert "Afronden" in named.get(f"/kalenders/{cid}").text
+    assert "gekrast" in named.post(f"/kalenders/{cid}/dag/2", data={"symbol": "a"}).text
+
+
+def test_serial_number_warning_and_search(named):
+    first = new_calendar(named)
+    second = new_calendar(named)
+    named.post(f"/kalenders/{first}/serienummer", data={"serial": "AB-1234"})
+    r = named.post(f"/kalenders/{second}/serienummer", data={"serial": "ab-1234"})
+    assert "staat al bij" in r.text and "Serienummer: ab-1234" in r.text
+    assert "staat al bij" in named.get(f"/kalenders/{second}").text
+    assert "staat al bij" not in named.post(f"/kalenders/{second}/serienummer", data={"serial": "ZZ-9"}).text
+    assert "AB-1234" in named.get("/", params={"q": "1234"}).text
+    assert "ZZ-9" not in named.get("/", params={"q": "1234"}).text
+    assert "Geen kalenders gevonden" in named.get("/", params={"q": "%"}).text
+
+
+def test_statistics_page(named):
+    assert "Nog geen kalenders" in named.get("/statistieken").text
+    cid = new_calendar(named)
+    for day in range(1, 32):
+        named.post(f"/kalenders/{cid}/dag/{day}", data={"symbol": "a" if day <= 3 else "x"})
+    named.post(f"/kalenders/{cid}/afronden", data={"total": "5"})
+    page = named.get("/statistieken").text
+    assert "Testkalender" in page and "1 kalender(s)" in page
+    assert "1 van 1" in page  # appels: 1 van 1 volledige kalender haalde de prijs
+    assert "te weinig" in page

@@ -12,10 +12,25 @@
   </div>
   <div class="actions">
     <span class="badge good" title="Elke wijziging wordt direct opgeslagen">✓ Automatisch opgeslagen</span>
+    {% if calendar.status == "done" %}
+    <button class="btn" hx-post="/kalenders/{{ calendar.id }}/heropenen">Heropenen</button>
+    {% else %}
+    <button class="btn primary" hx-get="/kalenders/{{ calendar.id }}/afronden" hx-target="#modal">Afronden</button>
     <button class="btn" hx-get="/kalenders/{{ calendar.id }}/reset" hx-target="#modal">Reset</button>
+    {% endif %}
     <button class="btn danger" hx-get="/kalenders/{{ calendar.id }}/verwijderen" hx-target="#modal">Verwijderen</button>
   </div>
 </section>
+
+{% if calendar.status == "done" %}
+<div class="banner">✓ Afgerond{% if calendar.done_at %} op {{ calendar.done_at }} UTC{% endif %}. Het ingevulde totaal is {{ win_cents | euro }}. Symbolen en spellen zijn vergrendeld; heropen de kalender om iets te wijzigen.</div>
+{% endif %}
+
+<form class="serial-form row" hx-post="/kalenders/{{ calendar.id }}/serienummer" hx-trigger="change delay:600ms" hx-swap="none">
+  <label for="serial">Serienummer</label>
+  <input id="serial" name="serial" value="{{ calendar.serial or '' }}" maxlength="40" placeholder="nummer op het lot">
+</form>
+{% include "partials/serial_warning.html" %}
 
 {% include "partials/version.html" %}
 <div id="stale" hx-get="/kalenders/{{ calendar.id }}/versie" hx-trigger="every 15s" hx-include="#cal-version"></div>
@@ -38,7 +53,7 @@
       <h3>{{ game.game }} december</h3>
       <div class="amounts">
         {% for a in game.amounts %}
-        <input name="a{{ loop.index0 }}" value="{{ a | euro_input }}" inputmode="decimal" placeholder="€" aria-label="Bedrag {{ loop.index }}">
+        <input name="a{{ loop.index0 }}" value="{{ a | euro_input }}" inputmode="decimal" placeholder="€" aria-label="Bedrag {{ loop.index }}"{{ " disabled" if calendar.status == "done" }}>
         {% endfor %}
       </div>
       {% set kind = "holiday" %}{% include "partials/game_result.html" %}
@@ -60,7 +75,7 @@
       <h3>Spel {{ game.game }}</h3>
       <div class="amounts">
         {% for a in game.amounts %}
-        <input name="a{{ loop.index0 }}" value="{{ a | euro_input }}" inputmode="decimal" placeholder="€" aria-label="Bedrag {{ loop.index }}">
+        <input name="a{{ loop.index0 }}" value="{{ a | euro_input }}" inputmode="decimal" placeholder="€" aria-label="Bedrag {{ loop.index }}"{{ " disabled" if calendar.status == "done" }}>
         {% endfor %}
       </div>
       {% set kind = "extra" %}{% include "partials/game_result.html" %}

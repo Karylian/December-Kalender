@@ -41,6 +41,13 @@ class Summary:
         return self.symbol_win_cents + self.holiday_win_cents + self.extra_win_cents
 
 
+def effective_win_cents(status: str, done_total_cents: int | None, computed_cents: int) -> int:
+    """Winst voor de geldstatistieken: bij een afgerond lot telt het ingevulde totaal."""
+    if status == "done" and done_total_cents is not None:
+        return done_total_cents
+    return computed_cents
+
+
 def matching_pair_win(amounts) -> int:
     """Feestdagspel: twee (of meer) gelijke bedragen winnen dat bedrag."""
     counts = Counter(a for a in amounts if a)

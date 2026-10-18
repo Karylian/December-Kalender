@@ -104,5 +104,183 @@
       "winning_tickets": 2,
       "top": true
     }
+  ],
+  "total_prizes": 875883,
+  "total_prize_value": 11551000,
+  "tiers": [
+    {
+      "count": 190000,
+      "value": 5
+    },
+    {
+      "count": 207000,
+      "value": 10,
+      "symbols": [
+        "sneeuw"
+      ]
+    },
+    {
+      "count": 160000,
+      "value": 10
+    },
+    {
+      "count": 70000,
+      "value": 15,
+      "symbols": [
+        "sneeuw"
+      ]
+    },
+    {
+      "count": 70000,
+      "value": 15
+    },
+    {
+      "count": 65000,
+      "value": 15
+    },
+    {
+      "count": 25000,
+      "value": 20,
+      "symbols": [
+        "kado"
+      ]
+    },
+    {
+      "count": 25000,
+      "value": 20,
+      "symbols": [
+        "sneeuw"
+      ]
+    },
+    {
+      "count": 25000,
+      "value": 20
+    },
+    {
+      "count": 8000,
+      "value": 30,
+      "symbols": [
+        "sneeuw",
+        "kado"
+      ]
+    },
+    {
+      "count": 8000,
+      "value": 30,
+      "symbols": [
+        "sneeuw"
+      ]
+    },
+    {
+      "count": 8000,
+      "value": 30
+    },
+    {
+      "count": 4000,
+      "value": 50,
+      "symbols": [
+        "berg"
+      ]
+    },
+    {
+      "count": 4000,
+      "value": 50,
+      "symbols": [
+        "sneeuw",
+        "kado"
+      ]
+    },
+    {
+      "count": 4000,
+      "value": 50
+    },
+    {
+      "count": 750,
+      "value": 100,
+      "symbols": [
+        "openhaard"
+      ]
+    },
+    {
+      "count": 750,
+      "value": 100,
+      "symbols": [
+        "sneeuw",
+        "kado",
+        "berg"
+      ]
+    },
+    {
+      "count": 750,
+      "value": 100
+    },
+    {
+      "count": 185,
+      "value": 200,
+      "symbols": [
+        "kaars"
+      ]
+    },
+    {
+      "count": 180,
+      "value": 200,
+      "symbols": [
+        "sneeuw",
+        "kado",
+        "berg",
+        "openhaard"
+      ]
+    },
+    {
+      "count": 180,
+      "value": 200
+    },
+    {
+      "count": 25,
+      "value": 400,
+      "symbols": [
+        "hulst"
+      ]
+    },
+    {
+      "count": 30,
+      "value": 400,
+      "symbols": [
+        "sneeuw",
+        "kado",
+        "berg",
+        "openhaard",
+        "kaars"
+      ]
+    },
+    {
+      "count": 25,
+      "value": 400
+    },
+    {
+      "count": 2,
+      "value": 5000
+    },
+    {
+      "count": 2,
+      "value": 10000,
+      "symbols": [
+        "strik"
+      ]
+    },
+    {
+      "count": 2,
+      "value": 20000,
+      "symbols": [
+        "sneeuwbol"
+      ]
+    },
+    {
+      "count": 2,
+      "value": 300000,
+      "symbols": [
+        "ster"
+      ]
+    }
   ]
 }

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Statistieken · December Kalender Tracker{% endblock %}
+{% block content %}
+<section class="stats">
+  <div class="stat"><span class="stat-label">Kalenders</span><span class="stat-value">{{ totals.calendars }}</span><span class="stat-sub">{{ totals.done }} afgerond · {{ totals.paid_out }} uitbetaald</span></div>
+  <div class="stat"><span class="stat-label">Uitgegeven</span><span class="stat-value">{{ totals.spent_cents | euro }}</span><span class="stat-sub">aankoopprijs van alle kalenders</span></div>
+  <div class="stat"><span class="stat-label">Gewonnen</span><span class="stat-value">{{ totals.won_cents | euro }}</span><span class="stat-sub">{{ totals.return_rate | pct }} van de inleg</span></div>
+  {% set net = totals.net_cents %}
+  <div class="stat {{ 'good' if net >= 0 else 'bad' }}"><span class="stat-label">Netto</span><span class="stat-value">{{ net | euro }}</span><span class="stat-sub">{{ totals.winners }} van {{ totals.calendars }} kalenders met een prijs ({{ totals.win_rate | pct(0) }})</span></div>
+</section>
+
+{% if totals.best %}
+<p class="muted">Beste kalender: <a href="/kalenders/{{ totals.best.calendar.id }}">{{ totals.best.calendar.label }}</a> met {{ totals.best.win_cents | euro }}.</p>
+{% endif %}
+
+{% for g in groups %}
+{% set r = g.ruleset %}
+<section class="card">
+  <h2>{{ r.name }} ({{ r.edition }}){% if r.game_number %} <span class="muted small">spel {{ r.game_number }}</span>{% endif %}</h2>
+  <p class="muted">
+    {{ g.totals.calendars }} kalender(s): uitgegeven {{ g.totals.spent_cents | euro }}, gewonnen {{ g.totals.won_cents | euro }},
+    netto <span class="{{ 'good' if g.totals.net_cents >= 0 else 'bad' }}">{{ g.totals.net_cents | euro }}</span>.
+  </p>
+
+  <h3>Terugbetaling: gepubliceerd naast eigen record</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Uitbetaald deel van de inleg</th><th>Kans op minstens één prijs</th></tr></thead>
+    <tbody>
+      <tr><td>Gepubliceerd (hele oplage)</td>
+        <td>{{ r.cash_return | pct }}{% if r.free_ticket_share %} <span class="muted small">+ {{ r.free_ticket_share | pct }} van de loten is een gratis lot</span>{% endif %}</td>
+        <td>{{ r.win_chance | one_in }}</td></tr>
+      <tr><td>Eigen record <span class="muted small">({{ g.settled_tickets }} afgeronde kalender(s))</span></td>
+        <td>{{ g.settled_return | pct }}</td>
+        <td>{{ (g.totals.winners / g.totals.calendars) | one_in if g.totals.winners else "—" }} <span class="muted small">({{ g.totals.winners }} van {{ g.totals.calendars }})</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted small">Het eigen record telt voor de terugbetaling alleen afgeronde kalenders, omdat een kalender die nog niet helemaal is opengekrast het resultaat te laag maakt.</p>
+
+  <h3>Symbolen</h3>
+  {% if g.full_record_tickets %}
+  <p class="muted small">Gebaseerd op {{ g.full_record_tickets }} kalender(s) waarvan alle {{ r.boxes }} vakjes zijn ingevuld ({{ g.total_boxes }} vakjes). Kalenders die zijn afgerond met alleen een totaalbedrag doen hier niet aan mee.
+  {% if g.full_record_tickets < 30 %}<strong>Dit zijn er te weinig om iets over de kansen te zeggen</strong>: de onzekerheid (interval) is groot.{% endif %}</p>
+  {% else %}
+  <p class="muted">Nog geen kalender met alle vakjes ingevuld, dus nog geen symboolstatistieken.</p>
+  {% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Symbool</th><th>Vakjes</th><th>Aandeel</th><th>Nodig</th><th>Gepubliceerd: lot haalt prijs</th><th>Eigen record</th></tr></thead>
+    <tbody>
+    {% for st in g.symbols %}
+      <tr>
+        <td>{{ st.symbol.emoji }} {{ st.symbol.name }}</td>
+        <td>{{ st.boxes }}</td>
+        <td>{{ st.box_share | pct }}</td>
+        <td>{{ (st.symbol.needed ~ "×") if st.symbol.needed else "geen prijs" }}</td>
+        <td>{{ st.published | one_in if st.symbol.needed else "—" }}</td>
+        <td>{% if st.symbol.needed and g.full_record_tickets %}{{ st.reached }} van {{ g.full_record_tickets }}
+          {% if st.interval %}<span class="muted small">(95%: {{ st.interval[0] | pct }} – {{ st.interval[1] | pct }})</span>{% endif %}
+          {% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="muted small">"Gepubliceerd" komt uit het officiële prijzenschema: het deel van de oplage waarin dit symbool zijn prijs oplevert. Het eigen record is een kleine, niet-willekeurige steekproef (zelfde winkel, zelfde partijen), dus gebruik het als aanwijzing, niet als bewijs.</p>
+</section>
+{% else %}
+<section class="card"><p class="muted">Nog geen kalenders om statistieken van te maken. <a href="/">Voeg er een toe.</a></p></section>
+{% endfor %}
+{% endblock %}

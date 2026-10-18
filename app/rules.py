@@ -31,6 +31,16 @@ class Symbol:
 
 
 @dataclass(frozen=True)
+class Tier:
+    """Eén regel uit het officiële prijzenschema."""
+
+    count: int
+    value_cents: int
+    symbols: tuple[str, ...] = ()  # symbol keys die in deze prijs voorkomen
+    free_ticket: bool = False  # gratis lot: telt niet mee in de officiële totaalwaarde
+
+
+@dataclass(frozen=True)
 class Ruleset:
     code: str
     name: str
@@ -52,6 +62,35 @@ class Ruleset:
     notes: str = ""
     sources: tuple[dict, ...] = ()
     pool: dict[str, int] = field(default_factory=dict)
+    tiers: tuple[Tier, ...] = ()
+    total_prizes: int | None = None
+    total_prize_value_cents: int | None = None
+
+    @property
+    def has_tiers(self) -> bool:
+        return bool(self.tiers and self.print_run)
+
+    @property
+    def cash_return(self) -> float | None:
+        """Verwacht uitbetaald deel van de inleg (zonder gratis loten)."""
+        if not self.has_tiers:
+            return None
+        cash = sum(t.count * t.value_cents for t in self.tiers if not t.free_ticket)
+        return cash / (self.print_run * self.price_cents)
+
+    @property
+    def free_ticket_share(self) -> float | None:
+        """Kans dat een lot een gratis lot oplevert."""
+        if not self.has_tiers:
+            return None
+        return sum(t.count for t in self.tiers if t.free_ticket) / self.print_run
+
+    @property
+    def win_chance(self) -> float | None:
+        """Kans op minstens één prijs, als er per lot hoogstens één prijsregel geldt."""
+        if not (self.total_prizes and self.print_run):
+            return None
+        return self.total_prizes / self.print_run
 
     @property
     def top_symbol(self) -> Symbol | None:
@@ -113,6 +152,27 @@ def parse_ruleset(data: dict) -> Ruleset:
             f"{data['code']}: aangenomen symbolenpool ({sum(pool.values())}) "
             f"is groter dan pool_size ({pool_size})"
         )
+    tiers = tuple(
+        Tier(
+            count=int(t["count"]),
+            value_cents=_cents(t["value"]),
+            symbols=tuple(t.get("symbols", ())),
+            free_ticket=bool(t.get("free_ticket", False)),
+        )
+        for t in data.get("tiers", ())
+    )
+    keys = {s.key for s in symbols}
+    for t in tiers:
+        unknown = set(t.symbols) - keys
+        if unknown:
+            raise ValueError(f"{data['code']}: prijsregel verwijst naar onbekend symbool {sorted(unknown)}")
+    if tiers and data.get("total_prizes") is not None:
+        if sum(t.count for t in tiers) != data["total_prizes"]:
+            raise ValueError(f"{data['code']}: aantal prijzen in tiers komt niet overeen met total_prizes")
+    if tiers and data.get("total_prize_value") is not None:
+        cash = sum(t.count * t.value_cents for t in tiers if not t.free_ticket)
+        if cash != _cents(data["total_prize_value"]):
+            raise ValueError(f"{data['code']}: waarde in tiers komt niet overeen met total_prize_value")
     return Ruleset(
         code=data["code"],
         name=data["name"],
@@ -134,6 +194,11 @@ def parse_ruleset(data: dict) -> Ruleset:
         notes=data.get("notes", ""),
         sources=tuple(data.get("sources", [])),
         pool=pool,
+        tiers=tiers,
+        total_prizes=data.get("total_prizes"),
+        total_prize_value_cents=(
+            _cents(data["total_prize_value"]) if data.get("total_prize_value") is not None else None
+        ),
     )
 
 
