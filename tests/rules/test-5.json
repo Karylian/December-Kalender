@@ -1,0 +1,20 @@
+{
+  "code": "test-5",
+  "name": "Testkalender €5",
+  "edition": 2025,
+  "price": 5,
+  "top_prize": 100000,
+  "overall_odds": 2.0,
+  "verified": false,
+  "notes": "Fictieve testregels, alleen voor de test-suite.",
+  "holiday_days": [5, 25, 26, 31],
+  "holiday_amounts": 4,
+  "extra_games": 2,
+  "extra_amounts": 1,
+  "symbols": [
+    {"key": "a", "name": "Appel", "emoji": "🍎", "needed": 3, "prize": 5, "prize_label": "Gratis lot", "odds": 10},
+    {"key": "b", "name": "Bel", "emoji": "🔔", "needed": 10, "prize": 5000, "odds": 3000000},
+    {"key": "s", "name": "Ster", "emoji": "⭐", "needed": 11, "prize": 100000, "odds": 1500000, "top": true},
+    {"key": "x", "name": "Leeg", "emoji": "▫️", "needed": 31, "prize": 0}
+  ]
+}

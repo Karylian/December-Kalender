@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}December Kalender Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">🎄 December Kalender Tracker</a>
+    <nav>
+      <a href="/">Overzicht</a>
+      <a href="/regels">Spelregels</a>
+      <a href="/export.json">Export</a>
+      {% if user %}
+      <form method="post" action="/naam/wissel" class="inline">
+        <button class="link" title="Andere naam kiezen">👤 {{ user.name }}</button>
+      </form>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <div id="modal"></div>
+</body>
+</html>

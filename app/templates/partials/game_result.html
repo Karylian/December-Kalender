@@ -1,0 +1,5 @@
+<p id="{{ kind }}-result-{{ game.game }}" class="result{{ ' good' if game.win_cents }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+  {% if game.win_cents %}🎉 Gewonnen: {{ game.win_cents | euro }}
+  {% elif game.amounts | select | list %}Geen prijs
+  {% else %}&nbsp;{% endif %}
+</p>

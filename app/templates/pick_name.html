@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h1>Wie ben je?</h1>
+  <p class="muted">Kies je naam zodat in het logboek staat wie wat heeft gekrast. Er is geen wachtwoord: deze app is bedoeld voor je thuisnetwerk.</p>
+  {% if users %}
+  <form method="post" action="/naam" class="name-list">
+    <input type="hidden" name="next" value="{{ next }}">
+    {% for u in users %}
+    <button name="user_id" value="{{ u.id }}" class="btn">{{ u.name }}</button>
+    {% endfor %}
+  </form>
+  <p class="muted">of</p>
+  {% endif %}
+  <form method="post" action="/naam" class="row">
+    <input type="hidden" name="next" value="{{ next }}">
+    <input name="new_name" placeholder="Nieuwe naam" maxlength="40" required>
+    <button class="btn primary">Doorgaan</button>
+  </form>
+</section>
+{% endblock %}

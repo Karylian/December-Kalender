@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ calendar.label }} · December Kalender Tracker{% endblock %}
+{% block content %}
+<section class="calendar-head">
+  <div>
+    <h1>{{ calendar.label }}</h1>
+    <p class="muted">
+      {{ ruleset.name }} ({{ ruleset.edition }}) · hoofdprijs {{ ruleset.top_prize_cents | euro }}
+      {% if calendar.serial %} · #{{ calendar.serial }}{% endif %}
+      {% if not ruleset.verified %} · <span class="badge warn" title="Spelregels nog niet gecontroleerd tegen het officiële prijzenschema">regels niet geverifieerd</span>{% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <span class="badge good" title="Elke wijziging wordt direct opgeslagen">✓ Automatisch opgeslagen</span>
+    <button class="btn" hx-get="/kalenders/{{ calendar.id }}/reset" hx-target="#modal">Reset</button>
+    <button class="btn danger" hx-get="/kalenders/{{ calendar.id }}/verwijderen" hx-target="#modal">Verwijderen</button>
+  </div>
+</section>
+
+{% include "partials/version.html" %}
+<div id="stale" hx-get="/kalenders/{{ calendar.id }}/versie" hx-trigger="every 15s" hx-include="#cal-version"></div>
+<div id="flash"></div>
+
+{% include "partials/stats.html" %}
+
+<section class="card">
+  <h2>31-Dagen Kraskalender</h2>
+  <p class="muted">Klik op een dagvakje om een gekrast symbool toe te wijzen of te wijzigen. 🎁 = dag met feestdagspel.</p>
+  {% include "partials/grid.html" %}
+</section>
+
+<section class="card">
+  <h2>Feestdagspellen</h2>
+  <p class="muted">Vul de {{ ruleset.holiday_amounts }} bedragen per feestdagspel in. Bij 2 gelijke bedragen win je dat bedrag.</p>
+  <div class="games">
+    {% for game in summary.holidays %}
+    <form class="game" hx-post="/kalenders/{{ calendar.id }}/feestdag/{{ game.game }}" hx-trigger="change delay:800ms" hx-swap="none">
+      <h3>{{ game.game }} december</h3>
+      <div class="amounts">
+        {% for a in game.amounts %}
+        <input name="a{{ loop.index0 }}" value="{{ a | euro_input }}" inputmode="decimal" placeholder="€" aria-label="Bedrag {{ loop.index }}">
+        {% endfor %}
+      </div>
+      {% set kind = "holiday" %}{% include "partials/game_result.html" %}
+    </form>
+    {% endfor %}
+  </div>
+</section>
+
+{% if summary.extras %}
+<section class="card">
+  <h2>Extra spellen</h2>
+  <p class="muted">
+    {% if ruleset.extra_rule == "match2" %}Vul de bedragen per extra spel in. Bij 2 gelijke bedragen win je dat bedrag.
+    {% else %}Vul per extra spel het gewonnen bedrag in (leeg laten als er niets gewonnen is).{% endif %}
+  </p>
+  <div class="games">
+    {% for game in summary.extras %}
+    <form class="game" hx-post="/kalenders/{{ calendar.id }}/extra/{{ game.game }}" hx-trigger="change delay:800ms" hx-swap="none">
+      <h3>Spel {{ game.game }}</h3>
+      <div class="amounts">
+        {% for a in game.amounts %}
+        <input name="a{{ loop.index0 }}" value="{{ a | euro_input }}" inputmode="decimal" placeholder="€" aria-label="Bedrag {{ loop.index }}">
+        {% endfor %}
+      </div>
+      {% set kind = "extra" %}{% include "partials/game_result.html" %}
+    </form>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% include "partials/odds.html" %}
+{% include "partials/log.html" %}
+{% endblock %}

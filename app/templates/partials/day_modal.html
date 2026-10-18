@@ -1,0 +1,20 @@
+{% set current = ruleset.symbol(boxes.get(day)) %}
+<div class="backdrop" data-close-modal>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h2 id="modal-title">Dag {{ day }} – kies gekrast symbool</h2>
+    {% if day in future_days %}<p class="banner warn">Let op: {{ day }} december is nog niet aangebroken.</p>{% endif %}
+    <p class="muted">Klik op het symbool dat je op dit vakje hebt opengekrast:</p>
+    <form class="symbol-picker" hx-post="/kalenders/{{ calendar.id }}/dag/{{ day }}" hx-swap="none">
+      {% for s in ruleset.symbols %}
+      <button name="symbol" value="{{ s.key }}" class="symbol{{ ' selected' if s == current }}">
+        <span class="day-emoji">{{ s.emoji }}</span><span>{{ s.name }}</span>
+        <span class="muted small">{{ s.needed }}× = {{ s.prize_label or (s.prize_cents | euro) }}</span>
+      </button>
+      {% endfor %}
+    </form>
+    <div class="row spread">
+      <button class="btn" hx-post="/kalenders/{{ calendar.id }}/dag/{{ day }}" hx-vals='{"symbol": ""}' hx-swap="none"{% if not current %} disabled{% endif %}>Vakje leegmaken</button>
+      <button class="btn" data-close-modal>Annuleren</button>
+    </div>
+  </div>
+</div>

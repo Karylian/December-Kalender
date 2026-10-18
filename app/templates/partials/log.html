@@ -1,0 +1,13 @@
+<section id="log" class="card"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="row spread">
+    <h2>Activiteitenlogboek</h2>
+    <button class="btn small" hx-post="/kalenders/{{ calendar.id }}/log/wissen" hx-swap="none" hx-confirm="Logboek van deze kalender wissen?">Wis log</button>
+  </div>
+  <ol class="log">
+    {% for entry in log %}
+    <li><time>{{ entry.created_at }} UTC</time> <strong>{{ entry.user_name or "?" }}</strong> {{ entry.message }}</li>
+    {% else %}
+    <li class="muted">Nog geen activiteit.</li>
+    {% endfor %}
+  </ol>
+</section>

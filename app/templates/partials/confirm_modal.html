@@ -1,0 +1,19 @@
+<div class="backdrop" data-close-modal>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    {% if action == "reset" %}
+    <h2 id="modal-title">Kalender resetten?</h2>
+    <p>Weet je zeker dat je alle ingevoerde symbolen en spellen van <strong>{{ calendar.label }}</strong> wilt wissen? Het logboek blijft bewaard.</p>
+    <div class="row spread">
+      <button class="btn" data-close-modal>Annuleren</button>
+      <button class="btn danger" hx-post="/kalenders/{{ calendar.id }}/reset" hx-swap="none">Ja, reset lot</button>
+    </div>
+    {% else %}
+    <h2 id="modal-title">Kalender verwijderen?</h2>
+    <p><strong>{{ calendar.label }}</strong> en het logboek worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.</p>
+    <div class="row spread">
+      <button class="btn" data-close-modal>Annuleren</button>
+      <button class="btn danger" hx-post="/kalenders/{{ calendar.id }}/verwijderen">Ja, verwijderen</button>
+    </div>
+    {% endif %}
+  </div>
+</div>

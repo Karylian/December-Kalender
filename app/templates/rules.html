@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Spelregels</h1>
+  <p class="muted">De regels per kalendertype staan als JSON-bestanden in <code>rules/</code> in de repository. Pas ze daar aan en herstart de app.</p>
+  <p class="muted">De kans per symbool is een <strong>schatting</strong>: het model trekt de vakjes zonder teruglegging uit een aangenomen pool. Die pool is per symbool zo gekozen dat de kans vooraf overeenkomt met de officiële kans op die prijs. Echte loten worden echter niet willekeurig samengesteld, dus behandel de percentages als indicatie.</p>
+</section>
+
+{% for r in rulesets %}
+<section class="card">
+  <h2>{{ r.name }} ({{ r.edition }})
+    {% if r.verified %}<span class="badge good">geverifieerd</span>{% else %}<span class="badge warn">niet geverifieerd</span>{% endif %}</h2>
+  <p class="muted">
+    Prijs {{ r.price_cents | euro }} · hoofdprijs {{ r.top_prize_cents | euro }}
+    {% if r.game_number %} · spel {{ r.game_number }}{% endif %}
+    {% if r.overall_odds %} · totale winkans 1 op {{ r.overall_odds }}{% endif %}
+    · feestdagspellen op {{ r.holiday_days | join(", ") }} december ({{ r.holiday_amounts }} bedragen)
+    {% if r.extra_games %} · {{ r.extra_games }} extra spellen{% endif %}
+  </p>
+  {% if r.notes %}<p>{{ r.notes }}</p>{% endif %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Symbool</th><th>Nodig</th><th>Prijs</th><th>Officiële kans</th><th>Aangenomen pool</th></tr></thead>
+    <tbody>
+    {% for s in r.symbols %}
+      <tr>
+        <td>{{ s.emoji }} {{ s.name }}</td>
+        <td>{{ s.needed }}×</td>
+        <td>{{ s.prize_label or (s.prize_cents | euro) }}</td>
+        <td>{{ ("1 op " ~ s.odds) if s.odds else "—" }}</td>
+        <td>{{ r.pool.get(s.key, "—") }} / {{ r.pool_size }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if r.sources %}
+  <p class="muted small">Bronnen:
+    {% for src in r.sources %}<a href="{{ src.url }}" rel="noreferrer">{{ src.title }}</a>{{ ", " if not loop.last }}{% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% else %}
+<section class="card"><p class="bad">Er zijn nog geen spelregels geladen.</p></section>
+{% endfor %}
+{% endblock %}

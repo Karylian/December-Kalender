@@ -1,0 +1,22 @@
+<section id="odds" class="card"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <h2>Kansen & prijzenoverzicht <span class="badge warn">hypergeometrische schatting</span></h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Symbool</th><th>Gevonden / nodig</th><th>Prijs</th><th>Kans</th></tr></thead>
+    <tbody>
+    {% for row in summary.rows %}
+      <tr class="{{ 'good' if row.achieved else ('dim' if not row.reachable) }}">
+        <td>{{ row.symbol.emoji }} {{ row.symbol.name }}</td>
+        <td>{{ row.seen }} / {{ row.symbol.needed }}
+          {% if row.achieved %}<span class="badge good">behaald</span>
+          {% elif not row.reachable %}<span class="badge">niet meer haalbaar</span>
+          {% else %}<span class="muted small">nog {{ row.symbol.needed - row.seen }}</span>{% endif %}</td>
+        <td>{{ row.symbol.prize_label or (row.symbol.prize_cents | euro) }}</td>
+        <td>{{ row.chance | chance }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting: officiële prijzenschema's vermelden niet hoeveel van elk symbool er op een lot zitten, dus het model gaat uit van een aangenomen pool die is afgestemd op de officiële kans per prijs (zie <a href="/regels">Spelregels</a>). Wordt live herberekend met de bekende symbolen en de resterende dichte vakjes.</p>
+</section>

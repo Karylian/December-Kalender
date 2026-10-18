@@ -1,0 +1,11 @@
+{% set oob = true %}
+{% include "partials/version.html" %}
+{% include "partials/stats.html" %}
+{% include "partials/grid.html" %}
+{% include "partials/odds.html" %}
+{% include "partials/log.html" %}
+{% set kind = "holiday" %}{% for game in summary.holidays %}{% include "partials/game_result.html" %}{% endfor %}
+{% set kind = "extra" %}{% for game in summary.extras %}{% include "partials/game_result.html" %}{% endfor %}
+<div id="stale" hx-swap-oob="innerHTML"></div>
+<div id="flash" hx-swap-oob="innerHTML">{% if error %}<div class="banner bad">{{ error }}</div>{% endif %}</div>
+<div id="modal" hx-swap-oob="innerHTML"></div>
