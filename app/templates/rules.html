@@ -13,6 +13,7 @@
   <p class="muted">
     Prijs {{ r.price_cents | euro }} · hoofdprijs {{ r.top_prize_cents | euro }}
     {% if r.game_number %} · spel {{ r.game_number }}{% endif %}
+    {% if r.print_run %} · oplage {{ "{:,}".format(r.print_run).replace(",", ".") }}{% endif %}
     {% if r.overall_odds %} · totale winkans 1 op {{ r.overall_odds }}{% endif %}
     · feestdagspellen op {{ r.holiday_days | join(", ") }} december ({{ r.holiday_amounts }} bedragen)
     {% if r.extra_games %} · {{ r.extra_games }} extra spellen{% endif %}
@@ -25,9 +26,9 @@
     {% for s in r.symbols %}
       <tr>
         <td>{{ s.emoji }} {{ s.name }}</td>
-        <td>{{ s.needed }}×</td>
-        <td>{{ s.prize_label or (s.prize_cents | euro) }}</td>
-        <td>{{ ("1 op " ~ s.odds) if s.odds else "—" }}</td>
+        <td>{{ (s.needed ~ "×") if s.needed else "—" }}</td>
+        <td>{{ (s.prize_label or (s.prize_cents | euro)) if s.needed else "geen prijs" }}</td>
+        <td>{% if s.odds %}1 op {{ "{:,.0f}".format(s.odds).replace(",", ".") if s.odds >= 100 else ("%.2f" | format(s.odds)).replace(".", ",") }}{% if s.winning_tickets %} <span class="muted small">({{ "{:,}".format(s.winning_tickets).replace(",", ".") }} loten)</span>{% endif %}{% else %}—{% endif %}</td>
         <td>{{ r.pool.get(s.key, "—") }} / {{ r.pool_size }}</td>
       </tr>
     {% endfor %}

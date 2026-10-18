@@ -64,7 +64,7 @@ def summarize(
     opened = len(boxes)
     counts = Counter(boxes.values())
     rows = []
-    for symbol in ruleset.symbols:
+    for symbol in ruleset.prize_symbols:
         seen = counts.get(symbol.key, 0)
         pool_count = ruleset.pool.get(symbol.key)
         chance = (

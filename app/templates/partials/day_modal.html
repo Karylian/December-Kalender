@@ -8,7 +8,7 @@
       {% for s in ruleset.symbols %}
       <button name="symbol" value="{{ s.key }}" class="symbol{{ ' selected' if s == current }}">
         <span class="day-emoji">{{ s.emoji }}</span><span>{{ s.name }}</span>
-        <span class="muted small">{{ s.needed }}× = {{ s.prize_label or (s.prize_cents | euro) }}</span>
+        <span class="muted small">{% if s.needed %}{{ s.needed }}× = {{ s.prize_label or (s.prize_cents | euro) }}{% else %}geen prijs{% endif %}</span>
       </button>
       {% endfor %}
     </form>

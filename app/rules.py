@@ -21,10 +21,11 @@ class Symbol:
     key: str
     name: str
     emoji: str
-    needed: int
+    needed: int | None  # None = symbool zonder prijs (komt wel op het lot voor)
     prize_cents: int
     prize_label: str | None = None  # bv. "Gratis kraslot"
-    odds: float | None = None  # officiële kans "1 op X" voor deze prijs
+    odds: float | None = None  # officiële kans "1 op X" dat een lot deze symboolprijs bevat
+    winning_tickets: int | None = None  # aantal loten in de oplage met deze symboolprijs
     pool_count: int | None = None  # handmatige pool-aanname, overschrijft kalibratie
     top: bool = False
 
@@ -45,6 +46,7 @@ class Ruleset:
     symbols: tuple[Symbol, ...]
     pool_size: int
     game_number: int | None = None
+    print_run: int | None = None  # oplage
     overall_odds: float | None = None
     verified: bool = False
     notes: str = ""
@@ -53,10 +55,14 @@ class Ruleset:
 
     @property
     def top_symbol(self) -> Symbol | None:
-        tops = [s for s in self.symbols if s.top]
+        tops = [s for s in self.prize_symbols if s.top]
         if tops:
             return tops[0]
-        return max(self.symbols, key=lambda s: s.prize_cents, default=None)
+        return max(self.prize_symbols, key=lambda s: s.prize_cents, default=None)
+
+    @property
+    def prize_symbols(self) -> tuple[Symbol, ...]:
+        return tuple(s for s in self.symbols if s.needed)
 
     def symbol(self, key: str | None) -> Symbol | None:
         return next((s for s in self.symbols if s.key == key), None)
@@ -66,16 +72,26 @@ def _cents(value) -> int:
     return round(float(value) * 100)
 
 
+def _symbol_odds(s: dict, print_run: int | None) -> float | None:
+    if s.get("odds"):
+        return float(s["odds"])
+    if print_run and s.get("winning_tickets"):
+        return print_run / s["winning_tickets"]
+    return None
+
+
 def parse_ruleset(data: dict) -> Ruleset:
+    print_run = data.get("print_run")
     symbols = tuple(
         Symbol(
             key=s["key"],
             name=s["name"],
             emoji=s.get("emoji", "•"),
-            needed=int(s["needed"]),
-            prize_cents=_cents(s["prize"]),
+            needed=int(s["needed"]) if s.get("needed") else None,
+            prize_cents=_cents(s.get("prize", 0)),
             prize_label=s.get("prize_label"),
-            odds=s.get("odds"),
+            odds=_symbol_odds(s, print_run),
+            winning_tickets=s.get("winning_tickets"),
             pool_count=s.get("pool_count"),
             top=bool(s.get("top", False)),
         )
@@ -88,7 +104,7 @@ def parse_ruleset(data: dict) -> Ruleset:
         if s.pool_count is not None
         else odds.calibrate_pool_count(s.needed, s.odds, boxes, pool_size)
         for s in symbols
-        if s.pool_count is not None or s.odds
+        if s.needed and (s.pool_count is not None or s.odds)
     }
     if data.get("extra_rule", "direct") not in ("direct", "match2"):
         raise ValueError(f"{data['code']}: extra_rule moet 'direct' of 'match2' zijn")
@@ -112,6 +128,7 @@ def parse_ruleset(data: dict) -> Ruleset:
         symbols=symbols,
         pool_size=pool_size,
         game_number=data.get("game_number"),
+        print_run=print_run,
         overall_odds=data.get("overall_odds"),
         verified=bool(data.get("verified", False)),
         notes=data.get("notes", ""),

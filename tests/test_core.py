@@ -70,3 +70,24 @@ def test_format_euros():
     assert format_euros(1050) == "€ 10,50"
     assert format_euros(-500) == "-€ 5,-"
     assert format_euros(100025, input_value=True) == "1.000,25"
+
+
+def test_official_rules_load_and_match_their_top_prize():
+    rulesets = load_rulesets()
+    assert {r.game_number for r in rulesets.values()} == {376, 377, 378, 400, 401, 402}
+    for r in rulesets.values():
+        top = r.top_symbol
+        assert r.verified and top.key == "ster" and top.needed == 11
+        assert top.prize_cents == r.top_prize_cents
+        # De geschatte kans vooraf ligt op (net boven) de officiële kans.
+        before = scoring.summarize(r, {}, {}, {})
+        row = next(row for row in before.rows if row.symbol == top)
+        assert 1 / top.odds <= row.chance < 1.01 / top.odds
+
+
+def test_twenty_euro_calendar_only_pays_for_stars():
+    r = load_rulesets()["dk-2026-20"]
+    assert [s.key for s in r.prize_symbols] == ["ster"]
+    assert r.extra_games == 15
+    summary = scoring.summarize(r, {d: "boom" for d in range(1, 12)}, {}, {})
+    assert summary.symbol_win_cents == 0 and summary.opened == 11

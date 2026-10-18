@@ -1,0 +1,108 @@
+{
+  "code": "dk-2025-10",
+  "name": "December Kalender €10",
+  "edition": 2025,
+  "game_number": 377,
+  "price": 10,
+  "top_prize": 300000,
+  "print_run": 1750000,
+  "overall_odds": 2.0,
+  "verified": true,
+  "notes": "Extra spellen 1 t/m 4: 3 gelijke symbolen op een rij, boter-kaas-en-eieren, vind de sneeuwpop, vind het rendier. Vul per spel het gewonnen bedrag in.",
+  "sources": [
+    {
+      "title": "Prijzenschema spel 377 (Lotto B.V.)",
+      "url": "https://nlo-krasloten-web-cdn.azureedge.net/assets/00b2bfb8-6c84-4e71-a7df-a85f84924208?x=0&y=0&c=ff0183c143320e5e76f21bad9fc11c9c2c1a95ca4e02626e068457cfb3774a31"
+    },
+    {
+      "title": "Productpagina spel 377",
+      "url": "https://krasloten.nederlandseloterij.nl/krasloten/december-kalender-10-377"
+    }
+  ],
+  "boxes": 31,
+  "holiday_days": [
+    5,
+    25,
+    26,
+    31
+  ],
+  "holiday_amounts": 4,
+  "extra_games": 4,
+  "extra_amounts": 1,
+  "extra_rule": "direct",
+  "symbols": [
+    {
+      "key": "sneeuw",
+      "name": "Sneeuw",
+      "emoji": "❄️",
+      "needed": 3,
+      "prize": 10,
+      "winning_tickets": 322960
+    },
+    {
+      "key": "kado",
+      "name": "Kado",
+      "emoji": "🎁",
+      "needed": 4,
+      "prize": 20,
+      "winning_tickets": 37960
+    },
+    {
+      "key": "berg",
+      "name": "Berg",
+      "emoji": "🏔️",
+      "needed": 5,
+      "prize": 50,
+      "winning_tickets": 4960
+    },
+    {
+      "key": "openhaard",
+      "name": "Openhaard",
+      "emoji": "🔥",
+      "needed": 6,
+      "prize": 100,
+      "winning_tickets": 960
+    },
+    {
+      "key": "kaars",
+      "name": "Kaars",
+      "emoji": "🕯️",
+      "needed": 7,
+      "prize": 200,
+      "winning_tickets": 215
+    },
+    {
+      "key": "hulst",
+      "name": "Hulst",
+      "emoji": "🌿",
+      "needed": 8,
+      "prize": 400,
+      "winning_tickets": 25
+    },
+    {
+      "key": "strik",
+      "name": "Strik",
+      "emoji": "🎀",
+      "needed": 9,
+      "prize": 10000,
+      "winning_tickets": 2
+    },
+    {
+      "key": "sneeuwbol",
+      "name": "Sneeuwbol",
+      "emoji": "🔮",
+      "needed": 10,
+      "prize": 20000,
+      "winning_tickets": 2
+    },
+    {
+      "key": "ster",
+      "name": "Ster",
+      "emoji": "⭐",
+      "needed": 11,
+      "prize": 300000,
+      "winning_tickets": 2,
+      "top": true
+    }
+  ]
+}

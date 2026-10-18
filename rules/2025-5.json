@@ -1,0 +1,109 @@
+{
+  "code": "dk-2025-5",
+  "name": "December Kalender €5",
+  "edition": 2025,
+  "game_number": 376,
+  "price": 5,
+  "top_prize": 100000,
+  "print_run": 3000000,
+  "overall_odds": 2.0,
+  "verified": true,
+  "notes": "Correctie: de eerste versie van dit PDF noemde bij prijs 005/006 11.000 en 6.800 loten; de huidige versie (en de winkans- en totaalkolommen) geven 110.000 en 68.000.",
+  "sources": [
+    {
+      "title": "Prijzenschema spel 376 (Lotto B.V.)",
+      "url": "https://nlo-krasloten-web-cdn.azureedge.net/assets/ee881ebe-ef08-42e4-9daf-e793213121c3?x=0&y=0&c=0185208c4dacfa2a3fc2c8a7571c4eea0d6452c4b5d5d27c97eab24953595658"
+    },
+    {
+      "title": "Productpagina spel 376",
+      "url": "https://krasloten.nederlandseloterij.nl/krasloten/december-kalender-5-376"
+    }
+  ],
+  "boxes": 31,
+  "holiday_days": [
+    5,
+    25,
+    26,
+    31
+  ],
+  "holiday_amounts": 4,
+  "extra_games": 0,
+  "extra_amounts": 1,
+  "extra_rule": "direct",
+  "symbols": [
+    {
+      "key": "kerstman",
+      "name": "Kerstman",
+      "emoji": "🎅",
+      "needed": 3,
+      "prize": 5,
+      "winning_tickets": 375000,
+      "prize_label": "Gratis kraslot (t.w.v. € 5)"
+    },
+    {
+      "key": "muts",
+      "name": "Muts",
+      "emoji": "🧢",
+      "needed": 4,
+      "prize": 5,
+      "winning_tickets": 524690
+    },
+    {
+      "key": "sneeuwpop",
+      "name": "Sneeuwpop",
+      "emoji": "⛄",
+      "needed": 5,
+      "prize": 10,
+      "winning_tickets": 148220
+    },
+    {
+      "key": "slee",
+      "name": "Slee",
+      "emoji": "🛷",
+      "needed": 6,
+      "prize": 20,
+      "winning_tickets": 12720
+    },
+    {
+      "key": "kaars",
+      "name": "Kaars",
+      "emoji": "🕯️",
+      "needed": 7,
+      "prize": 50,
+      "winning_tickets": 220
+    },
+    {
+      "key": "schaats",
+      "name": "Schaats",
+      "emoji": "⛸️",
+      "needed": 8,
+      "prize": 100,
+      "winning_tickets": 45
+    },
+    {
+      "key": "want",
+      "name": "Want",
+      "emoji": "🧤",
+      "needed": 9,
+      "prize": 200,
+      "winning_tickets": 15
+    },
+    {
+      "key": "bel",
+      "name": "Bel",
+      "emoji": "🔔",
+      "needed": 10,
+      "prize": 5000,
+      "winning_tickets": 1
+    },
+    {
+      "key": "ster",
+      "name": "Ster",
+      "emoji": "⭐",
+      "needed": 11,
+      "prize": 100000,
+      "winning_tickets": 2,
+      "top": true
+    }
+  ]
+}
