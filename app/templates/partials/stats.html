@@ -21,6 +21,7 @@
   <div class="stat">
     <span class="stat-label">Kans op hoofdprijs <span class="badge warn" title="Schatting op basis van het officiële prijzenschema, zie Spelregels">schatting</span></span>
     <span class="stat-value">{{ top_row.chance | chance if top_row and not (calendar.status == "done" and summary.remaining) else "—" }}</span>
-    <span class="stat-sub">{% if top %}{{ top.emoji }} {{ top.needed }}× {{ top.name }} · {{ top.prize_cents | euro }}{% endif %}</span>
+    <span class="stat-sub">{% if top %}{{ top.emoji }} {{ top.needed }}× {{ top.name }} · {{ top.prize_cents | euro }}{% endif %}
+      {% if ruleset.top_claims %}<br>{{ ruleset.top_claims.claimed }} van {{ ruleset.top_tickets }} {{ "hoofdprijs" if ruleset.top_tickets == 1 else "hoofdprijzen" }} al geclaimd (stand {{ ruleset.top_claims.as_of }}){% endif %}</span>
   </div>
 </section>

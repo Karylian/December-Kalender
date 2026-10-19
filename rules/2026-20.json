@@ -183,5 +183,10 @@
         "ster"
       ]
     }
-  ]
+  ],
+  "top_prize_claims": {
+    "claimed": 0,
+    "as_of": "2026-10-09",
+    "source": "https://krasloten.nederlandseloterij.nl/hoofdprijzen"
+  }
 }

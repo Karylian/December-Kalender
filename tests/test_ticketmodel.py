@@ -58,10 +58,18 @@ def test_matches_brute_force_enumeration(prefix):
 
 
 def test_starts_at_the_published_odds_for_every_official_calendar():
+    """Zonder geclaimde hoofdprijzen is de beginkans exact de gepubliceerde kans; anders alleen de top lager."""
     for ruleset in load_rulesets().values():
         start = ticketmodel.reach_chances(ruleset, {})
+        claimed = ruleset.top_claims.claimed if ruleset.top_claims else 0
+        top = ruleset.top_symbol
         for symbol in ruleset.prize_symbols:
-            assert start[symbol.key] == pytest.approx(1 / symbol.odds, rel=1e-9)
+            published = 1 / symbol.odds
+            if symbol is top and claimed:
+                expected = (ruleset.top_tickets - claimed) / (ruleset.print_run - claimed)
+                assert start[symbol.key] == pytest.approx(expected, rel=1e-9)
+            else:
+                assert start[symbol.key] == pytest.approx(published, rel=1e-5 if claimed else 1e-9)
 
 
 def test_combinations_share_the_boxes():

@@ -1,5 +1,8 @@
 <section id="odds" class="card"{% if oob %} hx-swap-oob="true"{% endif %}>
   <h2>Kansen & prijzenoverzicht <span class="badge warn">schatting</span></h2>
+  {% if ruleset.top_claims and ruleset.top_claims.claimed >= ruleset.top_tickets and ruleset.top_tickets %}
+  <p class="banner">Alle hoofdprijzen van dit spel zijn al geclaimd (stand {{ ruleset.top_claims.as_of }}). Dit lot kan de hoofdprijs dus niet meer winnen.</p>
+  {% endif %}
   {% if summary.inconsistent %}
   <p class="banner bad">Deze combinatie van symbolen komt in geen enkel lot uit het officiële prijzenschema voor (of er staat een symbool vaker dan zijn drempel). Controleer de ingevoerde vakjes; zolang dit zo is, kunnen er geen kansen worden berekend.</p>
   {% endif %}
@@ -22,7 +25,7 @@
   </table>
   </div>
   {% if ruleset.has_tiers %}
-  <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting op basis van het officiële prijzenschema: elk lot hoort bij één prijsregel (ook combinaties van meerdere symbolen of een symbool plus een spelprijs), en na elk gekrast vakje wordt bijgewerkt welke regels nog kunnen. De beginkans is precies de gepubliceerde kans. Aanname: een symbool dat zijn drempel haalt staat er precies zo vaak op, de rest van het lot blijft onder de drempels. Zie <a href="/regels">Spelregels</a>.</p>
+  <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting op basis van het officiële prijzenschema: elk lot hoort bij één prijsregel (ook combinaties van meerdere symbolen of een symbool plus een spelprijs), en na elk gekrast vakje wordt bijgewerkt welke regels nog kunnen. De beginkans is precies de gepubliceerde kans. Aanname: een symbool dat zijn drempel haalt staat er precies zo vaak op, de rest van het lot blijft onder de drempels.{% if ruleset.top_claims and ruleset.top_claims.claimed %} Al geclaimde hoofdprijzen zijn uit de oplage gehaald; hoeveel andere loten al verkocht of gekrast zijn is onbekend.{% endif %} Zie <a href="/regels">Spelregels</a>.</p>
   {% else %}
   <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting met een aangenomen symbolenpool (zie <a href="/regels">Spelregels</a>).</p>
   {% endif %}
