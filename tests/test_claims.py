@@ -35,17 +35,29 @@ def test_find_overview_url_from_product_page():
         claims.find_overview_url("<a href='x'>Prijzenschema</a>")
 
 
-def test_update_rules_writes_claims_and_skips_mismatches(tmp_path):
-    for path in RULES_DIR.glob("*.json"):
-        shutil.copy(path, tmp_path / path.name)
+def test_update_store_writes_claims_and_skips_mismatches(tmp_path):
+    rs = load_rulesets()
     as_of, rows = claims.parse_overview(SAMPLE)
     rows[400] = claims.ClaimRow(400, "x", 100_000, 3, 0, 3)  # totaal wijkt af van de prijsregels
-    report = claims.update_rules(tmp_path, as_of, rows, "bron")
-    assert any("2025-5.json: spel 376, 1 van 2" in line for line in report)
-    assert any("2026-5.json: OVERGESLAGEN" in line for line in report)
-    written = json.loads((tmp_path / "2025-5.json").read_text())["top_prize_claims"]
-    assert written == {"claimed": 1, "as_of": "2026-10-09", "source": "bron"}
-    assert load_rulesets(tmp_path)["dk-2025-5"].top_claims.claimed == 1
+    path = tmp_path / "claims.json"
+    report = claims.update_store(path, as_of, rows, rs)
+    assert any("spel 376: 1 van 2" in line for line in report)
+    assert any("spel 400: OVERGESLAGEN" in line for line in report)
+    store = json.loads(path.read_text())
+    assert store["376"] == {"claimed": 1, "as_of": "2026-10-09", "source": claims.SOURCE}
+    assert "400" not in store
+
+
+def test_claims_store_only_overrides_with_newer_data():
+    rs = load_rulesets()
+    stored = {"376": {"claimed": 2, "as_of": "2026-12-01"}, "377": {"claimed": 0, "as_of": "2026-01-01"},
+              "400": {"claimed": 9, "as_of": "2026-12-01"}, "402": {"claimed": "x", "as_of": "2026-12-01"}}
+    out = claims.apply_store(rs, stored)
+    assert out["dk-2025-5"].top_claims.claimed == 2            # nieuwer dan de stand in het bestand
+    assert out["dk-2025-10"].top_claims.claimed == 1           # ouder: bestand gaat voor
+    assert out["dk-2026-5"].top_claims.claimed == 0            # onmogelijk aantal (9 > 2): genegeerd
+    assert out["dk-2026-20"].top_claims == rs["dk-2026-20"].top_claims  # onleesbaar: genegeerd
+    assert claims.load_store(Path("/nonexistent/claims.json")) == {}
 
 
 def test_official_files_carry_claims_that_match_the_prize_lines():

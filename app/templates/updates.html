@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Updates · December Kalender Tracker{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="row spread">
+    <h1>Updates</h1>
+    <form method="post" action="/updates/controleren">
+      <button class="btn primary">Controleer op updates</button>
+    </form>
+  </div>
+  <p class="muted">Zoekt bij de Nederlandse Loterij naar een nieuwe December Kalender en naar de actuele aantallen geclaimde hoofdprijzen. Er wordt niets aangepast voordat je het voorstel hebt bekeken en bevestigd.</p>
+  {% if message %}<p class="banner">{{ message }}</p>{% endif %}
+</section>
+
+{% if proposal %}
+<section class="card">
+  <div class="row spread">
+    <h2>Laatste controle <span class="muted small">{{ proposal.checked_at }}{% if row.created_by_name %} · {{ row.created_by_name }}{% endif %}</span></h2>
+    {% if row.status == "applied" %}<span class="badge good">toegepast</span>
+    {% elif row.status == "dismissed" %}<span class="badge">genegeerd</span>
+    {% else %}<span class="badge warn">wacht op bevestiging</span>{% endif %}
+  </div>
+
+  {% for e in proposal.errors %}<p class="banner bad">{{ e }}</p>{% endfor %}
+
+  {% if not proposal.editions and not proposal.claims and not proposal.errors %}
+  <p>Alles is up-to-date: er is geen nieuwe editie en de geclaimde hoofdprijzen zijn actueel{% if proposal.claims_as_of %} (stand {{ proposal.claims_as_of }}){% endif %}.</p>
+  {% endif %}
+
+  {% for e in proposal.editions %}
+  <div class="proposal">
+    <h3>Nieuwe editie: December Kalender €{{ e.price }} ({{ e.edition }}), spel {{ e.game }}
+      {% if e.ok %}<span class="badge good">controles gehaald</span>{% else %}<span class="badge bad">niet toepasbaar</span>{% endif %}</h3>
+    {% for p in e.problems %}<p class="banner bad">{{ p }}</p>{% endfor %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Controle</th><th></th><th>Detail</th></tr></thead>
+      <tbody>{% for c in e.checks %}
+        <tr><td>{{ c.label }}</td><td>{{ "✓" if c.ok else "✗" }}</td><td class="muted small">{{ c.detail }}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {% for n in e.notes %}<p class="banner">{{ n }}</p>{% endfor %}
+    {% if e.ruleset %}
+    <p class="muted">Oplage {{ "{:,}".format(e.ruleset.print_run).replace(",", ".") }} · hoofdprijs € {{ "{:,}".format(e.ruleset.top_prize).replace(",", ".") }} · {{ e.ruleset.tiers | length }} prijsregels · {{ e.ruleset.extra_games }} extra spellen</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Symbool</th><th>Nodig</th><th>Prijs</th></tr></thead>
+      <tbody>{% for s in e.ruleset.symbols %}
+        <tr><td>{{ s.emoji }} {{ s.name }}</td><td>{{ (s.needed ~ "×") if s.needed else "—" }}</td>
+          <td>{% if s.needed %}{{ s.prize_label or ("€ " ~ s.prize) }}{% else %}geen prijs{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if proposal.claims %}
+  <h3>Geclaimde hoofdprijzen (stand {{ proposal.claims_as_of }})</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Spel</th><th>Nu</th><th>Wordt</th></tr></thead>
+    <tbody>{% for c in proposal.claims %}
+      <tr><td>{{ c.name }} <span class="muted small">spel {{ c.game }}</span></td>
+        <td>{{ c.old if c.old is not none else "—" }}</td><td><strong>{{ c.new }}</strong> van {{ c.total }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+
+  {% if proposal.older %}
+  <p class="muted small">Oudere kalenders die niet zijn geïnstalleerd (spel {{ proposal.older | map(attribute="game") | join(", ") }}) worden niet automatisch toegevoegd. Dat kan met <code>python -m app.update --game NUMMER</code>.</p>
+  {% endif %}
+
+  {% if row.status == "pending" and proposal.has_changes %}
+  <div class="row">
+    <form method="post" action="/updates/{{ row.id }}/toepassen"><button class="btn primary">Toepassen</button></form>
+    <form method="post" action="/updates/{{ row.id }}/negeren"><button class="btn">Negeren</button></form>
+  </div>
+  <p class="muted small">Toepassen voegt alleen de editie(s) toe die alle controles hebben gehaald, en werkt de aantallen geclaimde hoofdprijzen bij. De kansen in alle kalenders worden daarna met de nieuwe gegevens berekend. Bestaande kalenders en invoer blijven ongewijzigd.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Geïnstalleerde edities</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Kalender</th><th>Spel</th><th>Hoofdprijzen geclaimd</th></tr></thead>
+    <tbody>{% for r in installed %}
+      <tr><td>{{ r.name }} ({{ r.edition }})</td><td>{{ r.game_number or "—" }}</td>
+        <td>{% if r.top_claims %}{{ r.top_claims.claimed }} van {{ r.top_tickets }} <span class="muted small">(stand {{ r.top_claims.as_of }})</span>{% else %}onbekend{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

@@ -66,6 +66,18 @@ MIGRATIONS = [
     ALTER TABLE calendars ADD COLUMN done_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
     CREATE INDEX calendars_serial ON calendars (ruleset_code, serial);
     """,
+    # 3: voorstellen van de update-controle (nieuwe edities en claims)
+    """
+    CREATE TABLE update_proposals (
+        id         INTEGER PRIMARY KEY,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        payload    TEXT NOT NULL,
+        status     TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'applied', 'dismissed')),
+        decided_at TEXT,
+        decided_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+    );
+    """,
 ]
 
 

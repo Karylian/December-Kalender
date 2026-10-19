@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
+import time
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote
@@ -12,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, rules, scoring, stats, store
+from . import db, rules, scoring, stats, store, updater
 from .money import format_euros, parse_euros
 
 APP_DIR = Path(__file__).resolve().parent
@@ -49,11 +51,22 @@ def format_one_in(p: float | None) -> str:
     return "1 op " + (f"{x:,.0f}".replace(",", ".") if x >= 100 else f"{x:.2f}".replace(".", ","))
 
 
-def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules.RULES_DIR) -> FastAPI:
+CHECK_COOLDOWN_SECONDS = 60
+
+
+def create_app(
+    db_path: Path | str = db.DEFAULT_DB_PATH,
+    rules_dir: Path = rules.RULES_DIR,
+    update_dir: Path | None = None,
+    update_source=None,
+) -> FastAPI:
     app = FastAPI(title="December Kalender Tracker")
     conn = db.connect(db_path)
     db.migrate(conn)
-    rulesets = rules.load_rulesets(rules_dir)
+    update_dir = Path(update_dir) if update_dir else rules.UPDATE_DIR
+    rulesets = rules.load_all(rules_dir, update_dir)
+    update_lock = threading.Lock()
+    last_check = {"at": 0.0}
 
     templates = Jinja2Templates(directory=APP_DIR / "templates")
     templates.env.filters["euro"] = format_euros
@@ -172,10 +185,20 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
                 "orphans": orphans,
                 "totals": stats.totals(tickets),
                 "rulesets": rulesets.values(),
+                "update_available": update_available(),
                 "q": q,
                 "status": status,
             },
         )
+
+    def update_available() -> bool:
+        row = store.latest_proposal(conn)
+        if row is None or row["status"] != "pending":
+            return False
+        try:
+            return updater.Proposal.from_json(row["payload"]).has_changes
+        except (ValueError, KeyError, TypeError):
+            return False
 
     @app.get("/statistieken", response_class=HTMLResponse)
     def statistics(request: Request, user=Depends(current_user)):
@@ -362,6 +385,68 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
         return templates.TemplateResponse(
             request, "rules.html", {"user": user, "rulesets": rulesets.values()}
         )
+
+    # --- updates: nieuwe edities en geclaimde hoofdprijzen ----------------------------------------
+
+    def updates_page(request: Request, user, message: str | None = None):
+        row = store.latest_proposal(conn)
+        proposal = None
+        if row is not None:
+            try:
+                proposal = updater.Proposal.from_json(row["payload"])
+            except (ValueError, KeyError, TypeError):
+                proposal = None
+        return templates.TemplateResponse(
+            request,
+            "updates.html",
+            {
+                "user": user,
+                "row": row,
+                "proposal": proposal,
+                "installed": sorted(rulesets.values(), key=lambda r: (-r.edition, r.price_cents)),
+                "message": message,
+            },
+        )
+
+    @app.get("/updates", response_class=HTMLResponse)
+    def updates_view(request: Request, gedaan: str = "", user=Depends(current_user)):
+        messages = {"toegepast": "De update is toegepast.", "genegeerd": "Het voorstel is genegeerd.",
+                    "wacht": "Er is net al gecontroleerd; wacht even voor een nieuwe controle.",
+                    "beslist": "Dit voorstel was al beslist."}
+        return updates_page(request, user, messages.get(gedaan))
+
+    @app.post("/updates/controleren")
+    def check_updates(user=Depends(current_user)):
+        with update_lock:
+            if time.monotonic() - last_check["at"] < CHECK_COOLDOWN_SECONDS and last_check["at"]:
+                return RedirectResponse("/updates?gedaan=wacht", status_code=303)
+            last_check["at"] = time.monotonic()
+            source = update_source or updater.LiveSource()
+            proposal = updater.check_for_updates(source, rulesets)
+            store.save_proposal(conn, proposal.to_json(), user["id"])
+        return RedirectResponse("/updates", status_code=303)
+
+    @app.post("/updates/{proposal_id}/toepassen")
+    def apply_update(proposal_id: int, user=Depends(current_user)):
+        with update_lock:
+            row = store.get_proposal(conn, proposal_id)
+            if row is None:
+                raise HTTPException(404)
+            if row["status"] != "pending":
+                return RedirectResponse("/updates?gedaan=beslist", status_code=303)
+            proposal = updater.Proposal.from_json(row["payload"])
+            updater.apply_proposal(proposal, update_dir)
+            store.decide_proposal(conn, proposal_id, "applied", user["id"])
+            fresh = rules.load_all(rules_dir, update_dir)
+            rulesets.clear()  # dezelfde dict blijven gebruiken: alle routes zien direct de nieuwe regels
+            rulesets.update(fresh)
+        return RedirectResponse("/updates?gedaan=toegepast", status_code=303)
+
+    @app.post("/updates/{proposal_id}/negeren")
+    def dismiss_update(proposal_id: int, user=Depends(current_user)):
+        if not store.decide_proposal(conn, proposal_id, "dismissed", user["id"]):
+            return RedirectResponse("/updates?gedaan=beslist", status_code=303)
+        return RedirectResponse("/updates?gedaan=genegeerd", status_code=303)
 
     @app.get("/export.json")
     def export(user=Depends(current_user)):

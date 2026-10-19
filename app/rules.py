@@ -7,6 +7,7 @@ database-tabellen: een kalender verwijst naar ``Ruleset.code``.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +15,8 @@ from pathlib import Path
 from . import odds
 
 RULES_DIR = Path(os.environ.get("DK_RULES_DIR", Path(__file__).resolve().parent.parent / "rules"))
+# Hier komen regels van nieuwe edities (rules/) en geclaimde hoofdprijzen (claims.json) terecht.
+UPDATE_DIR = Path(os.environ.get("DK_UPDATE_DIR", "data/updates"))
 
 
 @dataclass(frozen=True)
@@ -245,3 +248,26 @@ def load_rulesets(directory: Path = RULES_DIR) -> dict[str, Ruleset]:
             raise ValueError(f"Dubbele ruleset-code {ruleset.code!r} in {path}")
         rulesets[ruleset.code] = ruleset
     return rulesets
+
+
+def load_all(rules_dir: Path | None = None, update_dir: Path | None = None) -> dict[str, Ruleset]:
+    """Regels uit de repository, aangevuld met nieuwe edities en actuele claims uit de update-map.
+
+    Bij dezelfde code gaat het bestand uit de repository voor, zodat een verbeterd bestand een oude
+    download vervangt. Claims uit ``claims.json`` gelden alleen als ze nieuwer zijn."""
+    from . import claims  # lokaal: claims importeert dit module
+
+    rules_dir = rules_dir or RULES_DIR
+    update_dir = update_dir or UPDATE_DIR
+    result = {}
+    extra = update_dir / "rules"
+    if extra.is_dir():
+        for path in sorted(extra.glob("*.json")):
+            try:  # een kapot gedownload bestand mag de app niet blokkeren
+                ruleset = parse_ruleset(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, ValueError, KeyError) as exc:
+                logging.getLogger(__name__).warning("Update-regels %s overgeslagen: %s", path.name, exc)
+                continue
+            result[ruleset.code] = ruleset
+    result.update(load_rulesets(rules_dir))
+    return claims.apply_store(result, claims.load_store(update_dir / "claims.json"))

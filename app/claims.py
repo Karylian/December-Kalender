@@ -1,10 +1,11 @@
 """Geclaimde hoofdprijzen uit het hoofdprijzenoverzicht van de Nederlandse Loterij.
 
 Het overzicht is een pdf die periodiek wordt bijgewerkt. Dit script leest hem uit (met
-``pdftotext`` van poppler), controleert de aantallen tegen de prijsregels in ``rules/`` en schrijft
-``top_prize_claims`` in de bijbehorende regelbestanden. Daarna de app herstarten.
+``pdftotext`` van poppler), controleert de aantallen tegen de prijsregels en schrijft ze naar
+``<update-dir>/claims.json``. Die waarden gaan voor op de standen in ``rules/`` zodra ze nieuwer zijn.
+Daarna de app herstarten (of gebruik de pagina Updates).
 
-    python -m app.claims                 # haalt het overzicht op via de productpagina
+    python -m app.claims                 # haalt het overzicht op en schrijft claims.json
     python -m app.claims --pdf bestand.pdf
     python -m app.claims --dry-run
 """
@@ -17,7 +18,7 @@ import re
 import subprocess
 import sys
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
@@ -91,45 +92,70 @@ def pdf_to_text(pdf: bytes) -> str:
     return done.stdout.decode("utf-8", errors="replace")
 
 
-def update_rules(rules_dir: Path, as_of: date, rows: dict[int, ClaimRow], source: str, dry_run: bool = False) -> list[str]:
-    """Schrijft ``top_prize_claims`` in elk regelbestand waarvan het spelnummer in het overzicht staat."""
-    report = []
-    for path in sorted(rules_dir.glob("*.json")):
+def load_store(path: Path) -> dict:
+    """Leest ``claims.json`` ({spelnummer: {claimed, as_of, source}}); een ontbrekend bestand is leeg."""
+    try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        row = rows.get(data.get("game_number"))
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def apply_store(rulesets: dict[str, rules.Ruleset], store: dict) -> dict[str, rules.Ruleset]:
+    """Zet de claims uit de opslag in de regels, maar alleen als ze nieuwer zijn dan wat er al in staat."""
+    result = {}
+    for code, ruleset in rulesets.items():
+        entry = store.get(str(ruleset.game_number)) if ruleset.game_number else None
+        try:
+            claimed, as_of = int(entry["claimed"]), str(entry["as_of"])
+        except (TypeError, KeyError, ValueError):
+            result[code] = ruleset
+            continue
+        current = ruleset.top_claims
+        if (current and current.as_of >= as_of) or not 0 <= claimed <= ruleset.top_tickets:
+            result[code] = ruleset
+            continue
+        result[code] = replace(ruleset, top_claims=rules.TopPrizeClaims(claimed, as_of, str(entry.get("source", ""))))
+    return result
+
+
+def update_store(path: Path, as_of: date, rows: dict[int, ClaimRow], rulesets: dict[str, rules.Ruleset], dry_run: bool = False) -> list[str]:
+    """Schrijft de claims van de bekende spellen naar ``claims.json``."""
+    store = load_store(path)
+    report = []
+    for ruleset in sorted(rulesets.values(), key=lambda r: r.game_number or 0):
+        row = rows.get(ruleset.game_number)
         if row is None:
             continue
-        top_tickets = sum(t["count"] for t in data.get("tiers", ()) if round(t["value"] * 100) == round(data["top_prize"] * 100))
-        if top_tickets != row.total:
-            report.append(f"{path.name}: OVERGESLAGEN, prijsregels hebben {top_tickets} hoofdprijzen, overzicht {row.total}")
+        if row.total != ruleset.top_tickets:
+            report.append(f"spel {row.game}: OVERGESLAGEN, prijsregels hebben {ruleset.top_tickets} hoofdprijzen, overzicht {row.total}")
             continue
-        data["top_prize_claims"] = {"claimed": row.claimed, "as_of": as_of.isoformat(), "source": source}
-        # de uitkomst moet door dezelfde controle als bij het laden van de app
-        rules.parse_ruleset(data)
-        report.append(f"{path.name}: spel {row.game}, {row.claimed} van {row.total} geclaimd (stand {as_of})")
-        if not dry_run:
-            path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        store[str(row.game)] = {"claimed": row.claimed, "as_of": as_of.isoformat(), "source": SOURCE}
+        report.append(f"spel {row.game}: {row.claimed} van {row.total} geclaimd (stand {as_of})")
+    if not dry_run:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(store, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--pdf", type=Path, help="lokaal bestand (pdf of de tekst ervan) in plaats van downloaden")
-    parser.add_argument("--rules-dir", type=Path, default=rules.RULES_DIR)
+    parser.add_argument("--update-dir", type=Path, default=rules.UPDATE_DIR, help="map waar claims.json komt te staan")
     parser.add_argument("--dry-run", action="store_true", help="alleen tonen wat er zou veranderen")
     args = parser.parse_args(argv)
 
+    all_rules = rules.load_all()
     if args.pdf:
         raw = args.pdf.read_bytes()
         text = raw.decode("utf-8", errors="replace") if args.pdf.suffix == ".txt" else pdf_to_text(raw)
     else:
-        newest = max(
-            (r for r in rules.load_rulesets(args.rules_dir).values() if r.price_cents == 500),
-            key=lambda r: r.edition,
-        )
+        newest = max((r for r in all_rules.values() if r.price_cents == 500), key=lambda r: r.edition)
         text, _ = fetch_overview(f"5-{newest.game_number}")
     as_of, rows = parse_overview(text)
-    for line in update_rules(args.rules_dir, as_of, rows, SOURCE, args.dry_run):
+    for line in update_store(args.update_dir / "claims.json", as_of, rows, all_rules, args.dry_run):
         print(line)
     return 0
 

@@ -186,3 +186,6 @@ td:not(:first-child) { white-space: nowrap; }
 details summary { cursor: pointer; margin: .5rem 0; }
 .day:disabled { cursor: default; opacity: .8; }
 .day:disabled:hover { border-color: var(--border); }
+
+.badge.bad { background: var(--bad-bg); color: var(--bad); }
+.proposal { border-top: 1px solid var(--border); padding-top: .75rem; margin-top: .75rem; }
