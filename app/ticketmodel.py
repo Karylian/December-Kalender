@@ -33,7 +33,10 @@ class TicketClass:
 
 
 def build_classes(ruleset: Ruleset) -> list[TicketClass]:
-    """Klassen uit de prijsregels; de lege klasse krijgt de rest van de oplage."""
+    """Klassen uit de prijsregels; de lege klasse krijgt de rest van de oplage.
+
+    Al geclaimde hoofdprijzen worden uit de oplage gehaald: een geclaimd lot is al gekrast door
+    iemand anders, dus jouw lot kan het niet zijn."""
     if not ruleset.has_tiers:
         raise ValueError(f"{ruleset.code} heeft geen prijsregels (tiers)")
     needed = {s.key: s.needed for s in ruleset.symbols}
@@ -42,13 +45,28 @@ def build_classes(ruleset: Ruleset) -> list[TicketClass]:
         if tier.symbols:
             key = frozenset(tier.symbols)
             by_set[key] = by_set.get(key, 0) + tier.count
+
+    claimed = ruleset.top_claims.claimed if ruleset.top_claims else 0
+    removed_from_empty = 0
+    if claimed:
+        for tier in ruleset.tiers:
+            if tier.value_cents != ruleset.top_prize_cents or not claimed:
+                continue
+            take = min(claimed, tier.count)
+            claimed -= take
+            if tier.symbols:
+                by_set[frozenset(tier.symbols)] -= take
+            else:
+                removed_from_empty += take
+
     classes = []
     for keys, count in by_set.items():
         required = tuple(sorted((k, needed[k]) for k in keys))
         if sum(n for _, n in required) > ruleset.boxes:
             raise ValueError(f"{ruleset.code}: {sorted(keys)} heeft meer vakjes nodig dan er zijn")
         classes.append(TicketClass(required, count))
-    rest = ruleset.print_run - sum(c.tickets for c in classes)
+    symbol_tickets = sum(t.count for t in ruleset.tiers if t.symbols)
+    rest = ruleset.print_run - symbol_tickets - removed_from_empty
     if rest < 0:
         raise ValueError(f"{ruleset.code}: meer prijsloten dan de oplage")
     classes.append(TicketClass((), rest))

@@ -234,6 +234,39 @@ def clear_log(conn: sqlite3.Connection, calendar_id: int, user_id: int) -> None:
         _log(conn, calendar_id, user_id, "Logboek gewist")
 
 
+# --- updates
+
+def save_proposal(conn: sqlite3.Connection, payload: str, user_id: int) -> int:
+    with conn:
+        # een nieuwe controle vervangt voorstellen die nog niet zijn beslist
+        conn.execute("UPDATE update_proposals SET status = 'dismissed', decided_at = datetime('now') WHERE status = 'pending'")
+        return conn.execute(
+            "INSERT INTO update_proposals (created_by, payload) VALUES (?, ?)", (user_id, payload)
+        ).lastrowid
+
+
+def latest_proposal(conn: sqlite3.Connection) -> sqlite3.Row | None:
+    return conn.execute(
+        """SELECT p.*, u.name AS created_by_name FROM update_proposals p
+           LEFT JOIN users u ON u.id = p.created_by ORDER BY p.id DESC LIMIT 1"""
+    ).fetchone()
+
+
+def get_proposal(conn: sqlite3.Connection, proposal_id: int) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM update_proposals WHERE id = ?", (proposal_id,)).fetchone()
+
+
+def decide_proposal(conn: sqlite3.Connection, proposal_id: int, status: str, user_id: int) -> bool:
+    """Zet een voorstel dat nog open staat op 'applied' of 'dismissed'; False als het al beslist was."""
+    with conn:
+        cur = conn.execute(
+            """UPDATE update_proposals SET status = ?, decided_at = datetime('now'), decided_by = ?
+               WHERE id = ? AND status = 'pending'""",
+            (status, user_id, proposal_id),
+        )
+    return cur.rowcount == 1
+
+
 # --- export -----------------------------------------------------------------
 
 def export_all(conn: sqlite3.Connection) -> dict:

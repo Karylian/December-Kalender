@@ -79,10 +79,12 @@ def test_official_rules_load_and_match_their_top_prize():
         top = r.top_symbol
         assert r.verified and top.key == "ster" and top.needed == 11
         assert top.prize_cents == r.top_prize_cents
-        # Het lotmodel begint precies bij de officiële kans.
+        # Het lotmodel begint bij de officiële kans, min de al geclaimde hoofdprijzen.
         before = scoring.summarize(r, {}, {}, {})
         row = next(row for row in before.rows if row.symbol == top)
-        assert row.chance == pytest.approx(1 / top.odds, rel=1e-9)
+        claimed = r.top_claims.claimed if r.top_claims else 0
+        assert row.chance == pytest.approx((r.top_tickets - claimed) / (r.print_run - claimed), rel=1e-9)
+        assert row.chance <= 1 / top.odds * (1 + 1e-9)
 
 
 def test_twenty_euro_calendar_only_pays_for_stars():
