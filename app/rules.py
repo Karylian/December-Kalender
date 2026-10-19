@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -218,3 +219,24 @@ def load_rulesets(directory: Path = RULES_DIR) -> dict[str, Ruleset]:
             raise ValueError(f"Dubbele ruleset-code {ruleset.code!r} in {path}")
         rulesets[ruleset.code] = ruleset
     return rulesets
+
+
+def default_ruleset(rulesets, today: date) -> Ruleset | None:
+    """Standaardtype voor een nieuwe kalender: de goedkoopste van het huidige jaar.
+
+    Is er voor dit jaar geen editie, dan de nieuwste die niet in de toekomst ligt, en anders de nieuwste."""
+    candidates = list(rulesets.values() if hasattr(rulesets, "values") else rulesets)
+    if not candidates:
+        return None
+    editions = {r.edition for r in candidates}
+    year = today.year if today.year in editions else max(
+        (e for e in editions if e <= today.year), default=max(editions)
+    )
+    return min((r for r in candidates if r.edition == year), key=lambda r: r.price_cents)
+
+
+def rulesets_by_edition(rulesets) -> list[tuple[int, list[Ruleset]]]:
+    """Nieuwste editie eerst, binnen een editie op prijs (voor het keuzemenu)."""
+    candidates = list(rulesets.values() if hasattr(rulesets, "values") else rulesets)
+    years = sorted({r.edition for r in candidates}, reverse=True)
+    return [(y, sorted((r for r in candidates if r.edition == y), key=lambda r: r.price_cents)) for y in years]

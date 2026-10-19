@@ -164,3 +164,20 @@ def test_symbol_stats_only_use_tickets_with_every_box_logged():
     # Geld telt wél mee voor het afgeronde lot zonder symbolen
     assert g.totals.won_cents == 500 + 500 + 2500 and g.totals.calendars == 4  # twee keer drie appels
     assert g.settled_tickets == 1 and g.settled_return == pytest.approx(2500 / 500)
+
+
+def test_default_ruleset_is_the_cheapest_of_the_current_year():
+    from datetime import date
+
+    from app.rules import default_ruleset, rulesets_by_edition
+
+    rs = load_rulesets()
+    assert default_ruleset(rs, date(2026, 10, 19)).code == "dk-2026-5"
+    assert default_ruleset(rs, date(2025, 12, 1)).code == "dk-2025-5"
+    # Jaar zonder editie: de nieuwste die niet in de toekomst ligt (of anders de nieuwste)
+    assert default_ruleset(rs, date(2027, 3, 1)).code == "dk-2026-5"
+    assert default_ruleset(rs, date(2020, 3, 1)).code == "dk-2026-5"
+    assert default_ruleset({}, date(2026, 1, 1)) is None
+    groups = rulesets_by_edition(rs)
+    assert [y for y, _ in groups] == [2026, 2025]
+    assert [r.price_cents for r in groups[0][1]] == [500, 1000, 2000]

@@ -163,6 +163,7 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
         rows = store.list_calendars(conn, status=status or None, q=q.strip() or None)
         tickets = stats.build_tickets(rows, rulesets, store.get_all_boxes(conn), store.get_all_amounts(conn))
         orphans = [r for r in rows if r["ruleset_code"] not in rulesets]
+        default = rules.default_ruleset(rulesets, date.today())
         return templates.TemplateResponse(
             request,
             "index.html",
@@ -172,6 +173,8 @@ def create_app(db_path: Path | str = db.DEFAULT_DB_PATH, rules_dir: Path = rules
                 "orphans": orphans,
                 "totals": stats.totals(tickets),
                 "rulesets": rulesets.values(),
+                "ruleset_groups": rules.rulesets_by_edition(rulesets),
+                "default_code": default.code if default else None,
                 "q": q,
                 "status": status,
             },

@@ -59,8 +59,12 @@
   <form method="post" action="/kalenders" class="grid-form">
     <label>Type
       <select name="ruleset_code" required>
-        {% for r in rulesets %}
-        <option value="{{ r.code }}">{{ r.name }} ({{ r.edition }}) · hoofdprijs {{ r.top_prize_cents | euro }}{% if not r.verified %} · niet geverifieerd{% endif %}</option>
+        {% for year, group in ruleset_groups %}
+        <optgroup label="{{ year }}">
+          {% for r in group %}
+          <option value="{{ r.code }}"{{ " selected" if r.code == default_code }}>{{ r.name }} · hoofdprijs {{ r.top_prize_cents | euro }}{% if not r.verified %} · niet geverifieerd{% endif %}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
     </label>
