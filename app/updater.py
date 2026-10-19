@@ -320,6 +320,10 @@ def parse_scheme(text: str) -> ParsedScheme:
 
 # --- spelregels bouwen ---------------------------------------------------------------------------------
 
+def _nl(n: int) -> str:
+    return f"{n:,}".replace(",", ".")
+
+
 def normalize_name(name: str) -> str:
     key = re.sub(r"\s+", "", name.strip().lower())
     return ENGLISH_NAMES.get(key, key)
@@ -370,9 +374,9 @@ def build_edition(
     count_sum = sum(t.count for t in parsed.tiers)
     value_sum = sum(t.count * t.value_cents for t in cash_tiers)
     checks.append(Check("Aantal prijzen klopt met het totaal", count_sum == parsed.total_prizes,
-                        f"{count_sum:,} gelezen, {parsed.total_prizes:,} genoemd".replace(",", ".")))
+                        f"{_nl(count_sum)} gelezen, {_nl(parsed.total_prizes)} genoemd"))
     checks.append(Check("Totale waarde klopt (zonder gratis loten)", value_sum == parsed.total_value_cents,
-                        f"€ {value_sum / 100:,.0f} gelezen, € {parsed.total_value_cents / 100:,.0f} genoemd".replace(",", ".")))
+                        f"€ {_nl(value_sum // 100)} gelezen, € {_nl(parsed.total_value_cents // 100)} genoemd"))
     published = count_sum / parsed.print_run
     checks.append(Check("Winkans klopt met de gepubliceerde winkans",
                         abs(published * parsed.win_odds - 1) < 0.01, f"1 op {1 / published:.2f} berekend, 1 op {parsed.win_odds:.2f} genoemd".replace(".", ",")))

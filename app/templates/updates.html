@@ -45,7 +45,7 @@
       <thead><tr><th>Symbool</th><th>Nodig</th><th>Prijs</th></tr></thead>
       <tbody>{% for s in e.ruleset.symbols %}
         <tr><td>{{ s.emoji }} {{ s.name }}</td><td>{{ (s.needed ~ "×") if s.needed else "—" }}</td>
-          <td>{% if s.needed %}{{ s.prize_label or ("€ " ~ s.prize) }}{% else %}geen prijs{% endif %}</td></tr>
+          <td>{% if s.needed %}{{ s.prize_label or ("€ " ~ ("{:,}".format(s.prize | int)).replace(",", ".")) }}{% else %}geen prijs{% endif %}</td></tr>
       {% endfor %}</tbody>
     </table></div>
     {% endif %}
