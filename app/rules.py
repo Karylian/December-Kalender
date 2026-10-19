@@ -138,7 +138,8 @@ def parse_ruleset(data: dict) -> Ruleset:
     )
     boxes = int(data.get("boxes", 31))
     pool_size = int(data.get("pool_size", 31_000))
-    pool = {
+    # Het poolmodel is alleen een terugval voor regels zonder prijsregels (tiers).
+    pool = {} if data.get("tiers") else {
         s.key: s.pool_count
         if s.pool_count is not None
         else odds.calibrate_pool_count(s.needed, s.odds, boxes, pool_size)
@@ -162,7 +163,14 @@ def parse_ruleset(data: dict) -> Ruleset:
         for t in data.get("tiers", ())
     )
     keys = {s.key for s in symbols}
+    prize_keys = {s.key for s in symbols if s.needed}
     for t in tiers:
+        not_prize = (set(t.symbols) & keys) - prize_keys
+        if not_prize:
+            raise ValueError(f"{data['code']}: prijsregel gebruikt symbool zonder prijs {sorted(not_prize)}")
+        sym_value = sum(s.prize_cents for s in symbols if s.key in t.symbols)
+        if t.value_cents < sym_value:
+            raise ValueError(f"{data['code']}: prijsregel {t.symbols} is minder waard dan zijn symboolprijzen")
         unknown = set(t.symbols) - keys
         if unknown:
             raise ValueError(f"{data['code']}: prijsregel verwijst naar onbekend symbool {sorted(unknown)}")

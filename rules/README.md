@@ -14,12 +14,14 @@ Bedragen zijn in euro's. Zie `tests/rules/test-5.json` voor een (fictief) voorbe
 | `sources` | Lijst van `{"title": ..., "url": ...}` |
 | `holiday_days`, `holiday_amounts` | Dagen met een feestdagspel (standaard 5/25/26/31) en het aantal bedragen per spel (standaard 4) |
 | `extra_games`, `extra_amounts`, `extra_rule` | Aantal extra spellen, invulvelden per spel, en `direct` (gewonnen bedrag invullen) of `match2` (2 gelijke bedragen) |
-| `pool_size` | Grootte van de aangenomen symbolenpool voor de kansschatting (standaard 31000) |
+| `pool_size` | Alleen voor regels zonder `tiers`: grootte van de aangenomen symbolenpool voor het eenvoudige terugvalmodel (standaard 31000) |
 | `symbols[]` | `key`, `name`, `emoji`, `needed` (aantal gelijke symbolen; weglaten = symbool zonder prijs), `prize`, optioneel `prize_label` (bv. "Gratis kraslot"), `winning_tickets` (aantal loten in de oplage met deze symboolprijs, opgeteld over alle prijsregels waarin het symbool voorkomt), `odds` (alternatief: officiële kans "1 op X"), `pool_count` (handmatige pool-aanname, overschrijft de kalibratie) en `top` (hoofdprijssymbool) |
 
 `tiers[]` (optioneel) zijn de regels van het prijzenschema: `count` (aantal loten), `value` (totaalbedrag van de regel), `symbols` (keys van symbolen in die prijs) en `free_ticket` (gratis lot, telt niet mee in de totaalwaarde). Samen met `total_prizes` en `total_prize_value` worden ze bij het laden gecontroleerd: kloppen de sommen niet, dan start de app niet. Daaruit komen het verwachte rendement en de kans op minstens één prijs.
 
-De kans per symbool wordt `print_run / winning_tickets`. Zonder `winning_tickets`, `odds` of `pool_count` toont de app voor dat symbool geen kans, alleen of het nog haalbaar is.
+Het lotmodel (`app/ticketmodel.py`) gebruikt de `tiers`: elke prijsregel met symbolen levert een klasse op (de verzameling symbolen die hun drempel halen), en de rest van de oplage is de lege klasse. Een prijsregel mag alleen symbolen met een prijs (`needed`) noemen, en mag niet minder waard zijn dan de som van die symboolprijzen.
+
+De beginkans per symbool is `print_run / winning_tickets`. Zonder `winning_tickets`, `odds` of `pool_count` toont de app voor dat symbool geen kans, alleen of het nog haalbaar is.
 
 ## Huidige bestanden
 

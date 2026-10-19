@@ -19,7 +19,7 @@
     <span class="stat-sub">{{ summary.remaining }} vakjes nog te krassen</span>
   </div>
   <div class="stat">
-    <span class="stat-label">Kans op hoofdprijs <span class="badge warn" title="Schatting op basis van een aangenomen symbolenpool, zie Spelregels">schatting</span></span>
+    <span class="stat-label">Kans op hoofdprijs <span class="badge warn" title="Schatting op basis van het officiële prijzenschema, zie Spelregels">schatting</span></span>
     <span class="stat-value">{{ top_row.chance | chance if top_row and not (calendar.status == "done" and summary.remaining) else "—" }}</span>
     <span class="stat-sub">{% if top %}{{ top.emoji }} {{ top.needed }}× {{ top.name }} · {{ top.prize_cents | euro }}{% endif %}</span>
   </div>

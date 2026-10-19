@@ -3,7 +3,8 @@
 <section class="card">
   <h1>Spelregels</h1>
   <p class="muted">De regels per kalendertype staan als JSON-bestanden in <code>rules/</code> in de repository. Pas ze daar aan en herstart de app.</p>
-  <p class="muted">De kans per symbool is een <strong>schatting</strong>: het model trekt de vakjes zonder teruglegging uit een aangenomen pool. Die pool is per symbool zo gekozen dat de kans vooraf overeenkomt met de officiële kans op die prijs. Echte loten worden echter niet willekeurig samengesteld, dus behandel de percentages als indicatie.</p>
+  <p class="muted">De kans per symbool is een <strong>schatting</strong>. Het officiële prijzenschema geeft per prijsregel hoeveel loten er zijn, ook voor combinaties (bijvoorbeeld 4× Muts <em>en</em> 5× Sneeuwpop, of een symbool plus een prijs uit de feestdagspellen). Het model deelt elk lot in bij één van die klassen, met de oplage als totaal, en werkt na elk gekrast vakje bij welke klassen nog mogelijk zijn. De beginkans is daardoor exact de gepubliceerde kans.</p>
+  <p class="muted">Het schema zegt niet hoe de vakjes over de symbolen zijn verdeeld. Aannames: een symbool dat zijn drempel haalt staat er precies zo vaak op; alle andere symbolen blijven onder hun drempel; verder zijn de vakjes willekeurig verdeeld. Hoe sterk een gevonden symbool de kans verandert hangt van die aannames af, dus behandel de percentages als indicatie.</p>
 </section>
 
 {% for r in rulesets %}
@@ -21,7 +22,7 @@
   {% if r.notes %}<p>{{ r.notes }}</p>{% endif %}
   <div class="table-wrap">
   <table>
-    <thead><tr><th>Symbool</th><th>Nodig</th><th>Prijs</th><th>Officiële kans</th><th>Aangenomen pool</th></tr></thead>
+    <thead><tr><th>Symbool</th><th>Nodig</th><th>Prijs</th><th>Officiële kans</th>{% if not r.has_tiers %}<th>Aangenomen pool</th>{% endif %}</tr></thead>
     <tbody>
     {% for s in r.symbols %}
       <tr>
@@ -29,7 +30,7 @@
         <td>{{ (s.needed ~ "×") if s.needed else "—" }}</td>
         <td>{{ (s.prize_label or (s.prize_cents | euro)) if s.needed else "geen prijs" }}</td>
         <td>{% if s.odds %}1 op {{ "{:,.0f}".format(s.odds).replace(",", ".") if s.odds >= 100 else ("%.2f" | format(s.odds)).replace(".", ",") }}{% if s.winning_tickets %} <span class="muted small">({{ "{:,}".format(s.winning_tickets).replace(",", ".") }} loten)</span>{% endif %}{% else %}—{% endif %}</td>
-        <td>{{ r.pool.get(s.key, "—") }} / {{ r.pool_size }}</td>
+        {% if not r.has_tiers %}<td>{{ r.pool.get(s.key, "—") }} / {{ r.pool_size }}</td>{% endif %}
       </tr>
     {% endfor %}
     </tbody>
