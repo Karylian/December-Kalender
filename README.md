@@ -58,4 +58,6 @@ De regels per kalendertype staan in `rules/*.json`. Zie [`rules/README.md`](rule
 Wat de app toont:
 
 - **Exact:** "gevonden / nodig" en "niet meer haalbaar".
-- **Schatting:** de **kans** per symbool. Officiële prijzenschema's vermelden alleen kansen per prijs over de hele oplage, niet hoeveel van elk symbool er op een lot zitten. Het model trekt de vakjes daarom zonder teruglegging uit een aangenomen symbolenpool (hypergeometrisch). Die pool is per symbool afgestemd op de officiële kans op die prijs. Echte loten worden niet willekeurig samengesteld, dus behandel de percentages als indicatie.
+- **Schatting:** de **kans** per symbool, met het lotmodel in `app/ticketmodel.py`. Het officiële prijzenschema geeft per prijsregel het aantal loten, ook voor combinaties (meerdere symbolen tegelijk, of een symbool plus een spelprijs). Elk lot hoort daardoor bij één klasse, met de oplage als totaal. Na elk gekrast vakje wordt (Bayes) bijgewerkt welke klassen nog mogelijk zijn. Vooraf is de kans precies de gepubliceerde kans.
+- **Aannames** (het schema zegt niets over de verdeling van de vakjes): een symbool dat zijn drempel haalt staat er precies zo vaak op; alle andere symbolen blijven onder hun drempel; verder is de verdeling willekeurig. Een combinatie die in geen enkele klasse past wordt gemeld als mogelijke invoerfout. Behandel de percentages als indicatie.
+- **Zonder prijsregels** (`tiers`) valt de app terug op een eenvoudiger poolmodel (zie `rules/README.md`).

@@ -133,3 +133,24 @@ def test_statistics_page(named):
     assert "Testkalender" in page and "1 kalender(s)" in page
     assert "1 van 1" in page  # appels: 1 van 1 volledige kalender haalde de prijs
     assert "te weinig" in page
+
+
+def test_impossible_symbol_combinations_are_flagged_with_the_official_rules(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    with TestClient(create_app(db_path=tmp_path / "real.db")) as c:  # de echte regels in rules/
+        c.post("/naam", data={"new_name": "Sanne"})
+        r = c.post("/kalenders", data={"ruleset_code": "dk-2026-5"}, follow_redirects=False)
+        cid = int(r.headers["location"].rsplit("/", 1)[1])
+        for day in (1, 2, 3):
+            ok = c.post(f"/kalenders/{cid}/dag/{day}", data={"symbol": "ster"})
+        assert "komt in geen enkel lot" not in ok.text
+        top = ok.text[ok.text.index("Kans op hoofdprijs"):][:400]
+        assert "1 op" in top or "%" in top  # drie sterren: nog gewoon een kans
+
+        for day in range(4, 14):  # 13 sterren: meer dan de 11 die bestaan
+            bad = c.post(f"/kalenders/{cid}/dag/{day}", data={"symbol": "ster"})
+        assert "komt in geen enkel lot" in bad.text
+        assert "—" in bad.text[bad.text.index("Kans op hoofdprijs"):][:400]

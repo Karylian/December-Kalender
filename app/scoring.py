@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from . import odds
+from . import odds, ticketmodel
 from .rules import Ruleset, Symbol
 
 
@@ -35,6 +35,7 @@ class Summary:
     symbol_win_cents: int
     holiday_win_cents: int
     extra_win_cents: int
+    inconsistent: bool = False  # waarneming komt in geen enkel lot uit het prijzenschema voor
 
     @property
     def total_win_cents(self) -> int:
@@ -66,26 +67,38 @@ def summarize(
     boxes: dict[int, str],
     holiday_amounts: dict[int, dict[int, int]],
     extra_amounts: dict[int, dict[int, int]],
+    *,
+    chances: bool = True,
 ) -> Summary:
     """``boxes``: dag -> symbol_key. ``*_amounts``: spel -> slot -> bedrag in centen."""
     opened = len(boxes)
     counts = Counter(boxes.values())
     rows = []
+    tier_chances = None
+    inconsistent = False
+    if chances and ruleset.has_tiers:
+        tier_chances = ticketmodel.reach_chances(ruleset, counts)
+        inconsistent = tier_chances is None
     for symbol in ruleset.prize_symbols:
         seen = counts.get(symbol.key, 0)
-        pool_count = ruleset.pool.get(symbol.key)
-        chance = (
-            None
-            if pool_count is None
-            else odds.symbol_chance(
-                pool_size=ruleset.pool_size,
-                pool_count=pool_count,
-                boxes=ruleset.boxes,
-                opened=opened,
-                seen_this=seen,
-                needed=symbol.needed,
+        if not chances or inconsistent:
+            chance = None
+        elif tier_chances is not None:
+            chance = tier_chances[symbol.key]
+        else:  # regels zonder prijsregels: terugval op het eenvoudige poolmodel
+            pool_count = ruleset.pool.get(symbol.key)
+            chance = (
+                None
+                if pool_count is None
+                else odds.symbol_chance(
+                    pool_size=ruleset.pool_size,
+                    pool_count=pool_count,
+                    boxes=ruleset.boxes,
+                    opened=opened,
+                    seen_this=seen,
+                    needed=symbol.needed,
+                )
             )
-        )
         rows.append(
             SymbolRow(
                 symbol=symbol,
@@ -121,4 +134,5 @@ def summarize(
         symbol_win_cents=sum(r.symbol.prize_cents for r in rows if r.achieved),
         holiday_win_cents=sum(g.win_cents for g in holidays),
         extra_win_cents=sum(g.win_cents for g in extras),
+        inconsistent=inconsistent,
     )

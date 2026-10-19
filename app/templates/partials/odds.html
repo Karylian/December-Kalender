@@ -1,5 +1,8 @@
 <section id="odds" class="card"{% if oob %} hx-swap-oob="true"{% endif %}>
-  <h2>Kansen & prijzenoverzicht <span class="badge warn">hypergeometrische schatting</span></h2>
+  <h2>Kansen & prijzenoverzicht <span class="badge warn">schatting</span></h2>
+  {% if summary.inconsistent %}
+  <p class="banner bad">Deze combinatie van symbolen komt in geen enkel lot uit het officiële prijzenschema voor (of er staat een symbool vaker dan zijn drempel). Controleer de ingevoerde vakjes; zolang dit zo is, kunnen er geen kansen worden berekend.</p>
+  {% endif %}
   <div class="table-wrap">
   <table>
     <thead><tr><th>Symbool</th><th>Gevonden / nodig</th><th>Prijs</th><th>Kans</th></tr></thead>
@@ -18,5 +21,9 @@
     </tbody>
   </table>
   </div>
-  <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting: officiële prijzenschema's vermelden niet hoeveel van elk symbool er op een lot zitten, dus het model gaat uit van een aangenomen pool die is afgestemd op de officiële kans per prijs (zie <a href="/regels">Spelregels</a>). Wordt live herberekend met de bekende symbolen en de resterende dichte vakjes.</p>
+  {% if ruleset.has_tiers %}
+  <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting op basis van het officiële prijzenschema: elk lot hoort bij één prijsregel (ook combinaties van meerdere symbolen of een symbool plus een spelprijs), en na elk gekrast vakje wordt bijgewerkt welke regels nog kunnen. De beginkans is precies de gepubliceerde kans. Aanname: een symbool dat zijn drempel haalt staat er precies zo vaak op, de rest van het lot blijft onder de drempels. Zie <a href="/regels">Spelregels</a>.</p>
+  {% else %}
+  <p class="muted small">"Gevonden" en "niet meer haalbaar" zijn exact. De kans is een schatting met een aangenomen symbolenpool (zie <a href="/regels">Spelregels</a>).</p>
+  {% endif %}
 </section>

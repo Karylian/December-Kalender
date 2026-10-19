@@ -72,7 +72,7 @@ def build_tickets(calendars, rulesets, boxes_by_calendar, amounts) -> list[Ticke
         cid = row["id"]
         boxes = boxes_by_calendar.get(cid, {})
         summary = scoring.summarize(
-            ruleset, boxes, amounts.get((cid, "holiday"), {}), amounts.get((cid, "extra"), {})
+            ruleset, boxes, amounts.get((cid, "holiday"), {}), amounts.get((cid, "extra"), {}), chances=False
         )
         tickets.append(Ticket(calendar=dict(row), ruleset=ruleset, summary=summary, boxes=boxes))
     return tickets
