@@ -41,6 +41,15 @@ class Tier:
 
 
 @dataclass(frozen=True)
+class TopPrizeClaims:
+    """Aantal al uitgekeerde hoofdprijzen, volgens het hoofdprijzenoverzicht van de loterij."""
+
+    claimed: int
+    as_of: str  # ISO-datum van het overzicht
+    source: str = ""
+
+
+@dataclass(frozen=True)
 class Ruleset:
     code: str
     name: str
@@ -65,6 +74,12 @@ class Ruleset:
     tiers: tuple[Tier, ...] = ()
     total_prizes: int | None = None
     total_prize_value_cents: int | None = None
+    top_claims: TopPrizeClaims | None = None
+
+    @property
+    def top_tickets(self) -> int:
+        """Aantal loten met de hoofdprijs (volgens de prijsregels)."""
+        return sum(t.count for t in self.tiers if t.value_cents == self.top_prize_cents)
 
     @property
     def has_tiers(self) -> bool:
@@ -181,6 +196,17 @@ def parse_ruleset(data: dict) -> Ruleset:
         cash = sum(t.count * t.value_cents for t in tiers if not t.free_ticket)
         if cash != _cents(data["total_prize_value"]):
             raise ValueError(f"{data['code']}: waarde in tiers komt niet overeen met total_prize_value")
+    claims = None
+    if data.get("top_prize_claims"):
+        raw = data["top_prize_claims"]
+        claims = TopPrizeClaims(int(raw["claimed"]), str(raw["as_of"]), str(raw.get("source", "")))
+        top_tickets = sum(t.count for t in tiers if t.value_cents == _cents(data["top_prize"]))
+        if not tiers:
+            raise ValueError(f"{data['code']}: top_prize_claims vraagt om tiers")
+        if not 0 <= claims.claimed <= top_tickets:
+            raise ValueError(
+                f"{data['code']}: {claims.claimed} geclaimde hoofdprijzen, maar er zijn er {top_tickets}"
+            )
     return Ruleset(
         code=data["code"],
         name=data["name"],
@@ -204,6 +230,7 @@ def parse_ruleset(data: dict) -> Ruleset:
         pool=pool,
         tiers=tiers,
         total_prizes=data.get("total_prizes"),
+        top_claims=claims,
         total_prize_value_cents=(
             _cents(data["total_prize_value"]) if data.get("total_prize_value") is not None else None
         ),

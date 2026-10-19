@@ -36,6 +36,9 @@
     </tbody>
   </table>
   </div>
+  {% if r.top_claims %}
+  <p><strong>Hoofdprijzen:</strong> {{ r.top_claims.claimed }} van {{ r.top_tickets }} geclaimd (stand {{ r.top_claims.as_of }}, <a href="{{ r.top_claims.source }}" rel="noreferrer">overzicht van de loterij</a>). De kans op de hoofdprijs houdt hiermee rekening.</p>
+  {% endif %}
   {% if r.has_tiers %}
   <h3>Verwacht rendement (officieel)</h3>
   <p>
