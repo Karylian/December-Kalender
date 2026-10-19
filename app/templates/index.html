@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+{% if update_available %}
+<div class="banner">Er staat een update klaar (nieuwe editie of nieuwe aantallen geclaimde hoofdprijzen). <a href="/updates">Bekijk de update</a></div>
+{% endif %}
 <section class="stats">
   <div class="stat"><span class="stat-label">Uitgegeven</span><span class="stat-value">{{ totals.spent_cents | euro }}</span><span class="stat-sub">{{ totals.calendars }} kalender(s), {{ totals.done }} afgerond</span></div>
   <div class="stat"><span class="stat-label">Gewonnen</span><span class="stat-value">{{ totals.won_cents | euro }}</span><span class="stat-sub">{{ totals.winners }} met een prijs · {{ totals.paid_out }} uitbetaald</span></div>
@@ -59,8 +62,12 @@
   <form method="post" action="/kalenders" class="grid-form">
     <label>Type
       <select name="ruleset_code" required>
-        {% for r in rulesets %}
-        <option value="{{ r.code }}">{{ r.name }} ({{ r.edition }}) · hoofdprijs {{ r.top_prize_cents | euro }}{% if not r.verified %} · niet geverifieerd{% endif %}</option>
+        {% for year, group in ruleset_groups %}
+        <optgroup label="{{ year }}">
+          {% for r in group %}
+          <option value="{{ r.code }}"{{ " selected" if r.code == default_code }}>{{ r.name }} · hoofdprijs {{ r.top_prize_cents | euro }}{% if not r.verified %} · niet geverifieerd{% endif %}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
     </label>

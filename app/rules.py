@@ -7,13 +7,17 @@ database-tabellen: een kalender verwijst naar ``Ruleset.code``.
 from __future__ import annotations
 
 import json
+import logging
 import os
+from datetime import date
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import odds
 
 RULES_DIR = Path(os.environ.get("DK_RULES_DIR", Path(__file__).resolve().parent.parent / "rules"))
+# Hier komen regels van nieuwe edities (rules/) en geclaimde hoofdprijzen (claims.json) terecht.
+UPDATE_DIR = Path(os.environ.get("DK_UPDATE_DIR", "data/updates"))
 
 
 @dataclass(frozen=True)
@@ -41,6 +45,15 @@ class Tier:
 
 
 @dataclass(frozen=True)
+class TopPrizeClaims:
+    """Aantal al uitgekeerde hoofdprijzen, volgens het hoofdprijzenoverzicht van de loterij."""
+
+    claimed: int
+    as_of: str  # ISO-datum van het overzicht
+    source: str = ""
+
+
+@dataclass(frozen=True)
 class Ruleset:
     code: str
     name: str
@@ -65,6 +78,12 @@ class Ruleset:
     tiers: tuple[Tier, ...] = ()
     total_prizes: int | None = None
     total_prize_value_cents: int | None = None
+    top_claims: TopPrizeClaims | None = None
+
+    @property
+    def top_tickets(self) -> int:
+        """Aantal loten met de hoofdprijs (volgens de prijsregels)."""
+        return sum(t.count for t in self.tiers if t.value_cents == self.top_prize_cents)
 
     @property
     def has_tiers(self) -> bool:
@@ -181,6 +200,17 @@ def parse_ruleset(data: dict) -> Ruleset:
         cash = sum(t.count * t.value_cents for t in tiers if not t.free_ticket)
         if cash != _cents(data["total_prize_value"]):
             raise ValueError(f"{data['code']}: waarde in tiers komt niet overeen met total_prize_value")
+    claims = None
+    if data.get("top_prize_claims"):
+        raw = data["top_prize_claims"]
+        claims = TopPrizeClaims(int(raw["claimed"]), str(raw["as_of"]), str(raw.get("source", "")))
+        top_tickets = sum(t.count for t in tiers if t.value_cents == _cents(data["top_prize"]))
+        if not tiers:
+            raise ValueError(f"{data['code']}: top_prize_claims vraagt om tiers")
+        if not 0 <= claims.claimed <= top_tickets:
+            raise ValueError(
+                f"{data['code']}: {claims.claimed} geclaimde hoofdprijzen, maar er zijn er {top_tickets}"
+            )
     return Ruleset(
         code=data["code"],
         name=data["name"],
@@ -204,6 +234,7 @@ def parse_ruleset(data: dict) -> Ruleset:
         pool=pool,
         tiers=tiers,
         total_prizes=data.get("total_prizes"),
+        top_claims=claims,
         total_prize_value_cents=(
             _cents(data["total_prize_value"]) if data.get("total_prize_value") is not None else None
         ),
@@ -218,3 +249,47 @@ def load_rulesets(directory: Path = RULES_DIR) -> dict[str, Ruleset]:
             raise ValueError(f"Dubbele ruleset-code {ruleset.code!r} in {path}")
         rulesets[ruleset.code] = ruleset
     return rulesets
+
+
+def default_ruleset(rulesets, today: date) -> Ruleset | None:
+    """Standaardtype voor een nieuwe kalender: de goedkoopste van het huidige jaar.
+
+    Is er voor dit jaar geen editie, dan de nieuwste die niet in de toekomst ligt, en anders de nieuwste."""
+    candidates = list(rulesets.values() if hasattr(rulesets, "values") else rulesets)
+    if not candidates:
+        return None
+    editions = {r.edition for r in candidates}
+    year = today.year if today.year in editions else max(
+        (e for e in editions if e <= today.year), default=max(editions)
+    )
+    return min((r for r in candidates if r.edition == year), key=lambda r: r.price_cents)
+
+
+def rulesets_by_edition(rulesets) -> list[tuple[int, list[Ruleset]]]:
+    """Nieuwste editie eerst, binnen een editie op prijs (voor het keuzemenu)."""
+    candidates = list(rulesets.values() if hasattr(rulesets, "values") else rulesets)
+    years = sorted({r.edition for r in candidates}, reverse=True)
+    return [(y, sorted((r for r in candidates if r.edition == y), key=lambda r: r.price_cents)) for y in years]
+
+
+def load_all(rules_dir: Path | None = None, update_dir: Path | None = None) -> dict[str, Ruleset]:
+    """Regels uit de repository, aangevuld met nieuwe edities en actuele claims uit de update-map.
+
+    Bij dezelfde code gaat het bestand uit de repository voor, zodat een verbeterd bestand een oude
+    download vervangt. Claims uit ``claims.json`` gelden alleen als ze nieuwer zijn."""
+    from . import claims  # lokaal: claims importeert dit module
+
+    rules_dir = rules_dir or RULES_DIR
+    update_dir = update_dir or UPDATE_DIR
+    result = {}
+    extra = update_dir / "rules"
+    if extra.is_dir():
+        for path in sorted(extra.glob("*.json")):
+            try:  # een kapot gedownload bestand mag de app niet blokkeren
+                ruleset = parse_ruleset(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, ValueError, KeyError) as exc:
+                logging.getLogger(__name__).warning("Update-regels %s overgeslagen: %s", path.name, exc)
+                continue
+            result[ruleset.code] = ruleset
+    result.update(load_rulesets(rules_dir))
+    return claims.apply_store(result, claims.load_store(update_dir / "claims.json"))

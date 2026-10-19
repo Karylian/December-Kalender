@@ -154,3 +154,23 @@ def test_impossible_symbol_combinations_are_flagged_with_the_official_rules(tmp_
             bad = c.post(f"/kalenders/{cid}/dag/{day}", data={"symbol": "ster"})
         assert "komt in geen enkel lot" in bad.text
         assert "—" in bad.text[bad.text.index("Kans op hoofdprijs"):][:400]
+
+
+def test_new_calendar_form_preselects_the_current_edition(tmp_path):
+    import re
+    from datetime import date
+
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    with TestClient(create_app(db_path=tmp_path / "d.db")) as c:  # de echte regels
+        c.post("/naam", data={"new_name": "Sanne"})
+        html = c.get("/").text
+        start = html.index('name="ruleset_code"')
+        select = html[start:html.index("</select>", start)]
+        selected = re.findall(r'<option value="([^"]+)" selected', select)
+        assert len(selected) == 1
+        year = date.today().year
+        assert selected[0] == f"dk-{year}-5" if year in (2025, 2026) else selected[0].startswith("dk-")
+        assert select.index('label="2026"') < select.index('label="2025"')

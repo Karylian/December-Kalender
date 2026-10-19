@@ -21,6 +21,10 @@ Bedragen zijn in euro's. Zie `tests/rules/test-5.json` voor een (fictief) voorbe
 
 Het lotmodel (`app/ticketmodel.py`) gebruikt de `tiers`: elke prijsregel met symbolen levert een klasse op (de verzameling symbolen die hun drempel halen), en de rest van de oplage is de lege klasse. Een prijsregel mag alleen symbolen met een prijs (`needed`) noemen, en mag niet minder waard zijn dan de som van die symboolprijzen.
 
+`top_prize_claims` (`claimed`, `as_of`, `source`) is het aantal al uitgekeerde hoofdprijzen volgens het overzicht van de loterij, gecontroleerd tegen het aantal hoofdprijzen in de `tiers` (de prijsregels met een waarde gelijk aan `top_prize`). De standen in deze bestanden zijn een momentopname; actuele standen komen via de pagina Updates (of `python -m app.update`) in `claims.json` in de update-map en gaan voor zodra ze nieuwer zijn.
+
+Nieuwe edities hoef je niet met de hand te schrijven: de pagina Updates bouwt ze uit het prijzenschema (zie de README). Bestanden in deze map gaan altijd voor op gedownloade bestanden met dezelfde `code`.
+
 De beginkans per symbool is `print_run / winning_tickets`. Zonder `winning_tickets`, `odds` of `pool_count` toont de app voor dat symbool geen kans, alleen of het nog haalbaar is.
 
 ## Huidige bestanden
